@@ -19,12 +19,12 @@ PREFIX = /usr
     # library installation directory
 
 
-CPP_FILES = $(wildcard daq/src/*.cpp analysis/src/*.cpp h5manager/src/*.cpp)
+CPP_FILES = $(wildcard src/*.cpp analysis/src/*.cpp h5manager/src/*.cpp)
 OBJ_FILES = $(patsubst %.cpp, %.o, $(CPP_FILES))
     # source and object files for data acquisition
 
 
-CFLAGS = -Wall -std=c++0x -fPIC -Ianalysis/include -Idaq/include -Ih5manager/include
+CFLAGS = -Wall -std=c++0x -fPIC -Ianalysis/include -Iinclude -Ih5manager/include
 
 # polaris flags and linker
 CFLAGS += -I/usr/include/polaris
@@ -95,7 +95,7 @@ lib/$(LIBNAME) : $(OBJ_FILES)
 install:
 	@echo "installing SABRE libraries..."
 	@mkdir -p ${PREFIX}/include/$(NAME)
-	@cp -r analysis/include daq/include ${PREFIX}/include/$(NAME)
+	@cp -r analysis/include include ${PREFIX}/include/$(NAME)
 	@cp lib/$(LIBNAME) ${PREFIX}/lib/
 	@cp bin/saber-event-viewer bin/saber-spec-generator bin/saber-update-format ${PREFIX}/bin/
 	@sudo ldconfig -n ${PREFIX}/lib/lib${NAME}.so
