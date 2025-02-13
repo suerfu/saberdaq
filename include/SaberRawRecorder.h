@@ -16,7 +16,7 @@ public:
 
 protected:
 
-    void Configure(){ plrsModuleRecorder::Configure(); }
+    void Configure();
 
 	void Deconfigure();
 
