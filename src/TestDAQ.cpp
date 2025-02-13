@@ -308,7 +308,7 @@ void TestDAQ::Configure(){
 
     for( int i=0; i<NBUFF; i++){
         int id = ctrl->GetIDByName( this->GetModuleName() );
-        PushToBuffer( id, new SaberDAQData( param_adci, param_trig[0]) );
+        PushToBuffer( id, new SaberDAQData( param_adc, param_trig[0]) );
     }
 
     Print( "Data buffer configured.\n", DETAIL);
