@@ -85,7 +85,7 @@ void SaberRawRecorder::Configure(){
     // Write ADC board parameters
 
     for( unsigned int i=0; i<adc_params.size(); i++){
-        len = 4*adc_params[i].GetHeaderSize()
+        len = 4*adc_params[i].GetHeaderSize();
         char* p_adc = new char[ len ];
         adc_params[i].Serialize( p_adc );
         output_file.write( p_adc, len );
