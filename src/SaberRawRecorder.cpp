@@ -1,22 +1,22 @@
-#include "SaberDiskRecorder.h"
+#include "SaberRawRecorder.h"
 #include "SaberDAQData.h"
 #include "SaberDAQHeader.h"
 
 
-extern "C" SaberDiskRecorder* create_SaberDiskRecorder( plrsController* c ){ return new SaberDiskRecorder(c);}
+extern "C" SaberRawRecorder* create_SaberRawRecorder( plrsController* c ){ return new SaberRawRecorder(c);}
 
 
-extern "C" void destroy_SaberDiskRecorder( SaberDiskRecorder* p ){ delete p;}
+extern "C" void destroy_SaberRawRecorder( SaberRawRecorder* p ){ delete p;}
 
 
-SaberDiskRecorder::SaberDiskRecorder( plrsController* c) : plrsModuleRecorder(c){}
+SaberRawRecorder::SaberRawRecorder( plrsController* c) : plrsModuleRecorder(c){}
 
 
-SaberDiskRecorder::~SaberDiskRecorder(){}
+SaberRawRecorder::~SaberRawRecorder(){}
 
 
 
-void SaberDiskRecorder::Deconfigure(){
+void SaberRawRecorder::Deconfigure(){
 
     if(!output_file || !output_file.is_open() )
         return;
@@ -35,13 +35,13 @@ void SaberDiskRecorder::Deconfigure(){
 
 
 
-void SaberDiskRecorder::PreRun(){
+void SaberRawRecorder::PreRun(){
     cparser->Serialize( output_file );
 }
 
 
 
-void SaberDiskRecorder::Run(){
+void SaberRawRecorder::Run(){
 
     Print( "running...\n", DEBUG);
 
@@ -87,7 +87,7 @@ void SaberDiskRecorder::Run(){
     Print( "run ended.\n", DEBUG);
 }
 
-void SaberDiskRecorder::PostRun(){
+void SaberRawRecorder::PostRun(){
 
     bool exit_ok = false;
     void* rdo = 0;
