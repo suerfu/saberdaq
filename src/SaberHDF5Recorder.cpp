@@ -163,7 +163,7 @@ string SaberHDF5Recorder::GetFileName(){
     stringstream ss;
     ss << file_prefix;
 
-    struct tm tm = *localtime(&t);
+    struct tm tm = *localtime( &t );
 
     ss << "_" << tm.tm_year+1900;
     ss << setfill('0') << setw(2) << tm.tm_mon+1 << setfill('0') << setw(2) << tm.tm_mday;
@@ -180,12 +180,12 @@ string SaberHDF5Recorder::GetFileName(){
 
 void SaberHDF5Recorder::CloseOutput( SaberDAQData* data ){
     
-    h5man->AddAttribute( "/", "timestamp_end", GetEndTime() );
+    h5man->AddAttribute( "/", "timestamp_end", data->GetTimeStamp() );
    
-    for( unsigned int i=0; i<adcparam.size(); i++){
+    for( unsigned int i=0; i<nb_adc_board; i++){
         stringstream ss;
         ss << "/adc_" << i;
-        h5man->AddAttribute( ss.str(), "nb_events", n_total_event );
+        h5man->AddAttribute( ss.str(), "nb_events", evt_counter );
     }
 
     h5man->CloseFile();
@@ -220,9 +220,9 @@ void SaberHDF5Recorder::ConfigureOutput( SaberDAQData* data ){
     //              ADC
     // ******************************
 
-    vector<CAENV1720Parameter> adcparam = data->GetADCParameter();
+    vector<CAENV1720Parameter> adcparam = data->GetADCParameters();
     
-    int nb_adc_board = adcparam.size() ;
+    nb_adc_board = adcparam.size() ;
 
     h5man->AddAttribute( "/", "nb_adc_board", adcparam.size() );
 
@@ -236,7 +236,7 @@ void SaberHDF5Recorder::ConfigureOutput( SaberDAQData* data ){
     //          Trigger
     // ******************************
 
-    vector<CAENV1495Parameter> trigparam = GetTrigParameter();
+    vector<CAENV1495Parameter> trigparam = data->GetTrigParameter();
 
     if( trigparam.size()>0 ){
         trigparam[0].ExportHDF5( h5man );
@@ -247,7 +247,7 @@ void SaberHDF5Recorder::ConfigureOutput( SaberDAQData* data ){
 
 void SaberHDF5Recorder::WriteToOutput( SaberDAQData* data){
 
-    for( unsigned int i=0; i<data.size(); i++){
+    for( unsigned int i=0; i<data->size(); i++){
 
         // first find out the dimension of the data matrix
         //
@@ -281,7 +281,7 @@ void SaberHDF5Recorder::WriteToOutput( SaberDAQData* data){
 
         // Write the actual waveform to data, noting that the first 4 32-bit words are headers
         //
-        h5man->WriteData( (*data).GetBufferAddr()+4, evtname.str(), H5::PredType::NATIVE_UINT16, 2, dim);
+        h5man->WriteData( (*data)[i].GetBufferAddr()+4, evtname.str(), H5::PredType::NATIVE_UINT16, 2, dim);
         
         evt_counter++;
             // Everytime an event is written, increment the counter to keep track of number of events.
