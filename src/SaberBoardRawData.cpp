@@ -112,7 +112,7 @@ unsigned int SaberBoardRawData::GetNChannelEnabled(){
 
 
 
-unsigned int SaberBoardRawData::GetBoardID(){
+int SaberBoardRawData::GetBoardID(){
     return (buffer[1]>>27)&0x1f;
 }
 
