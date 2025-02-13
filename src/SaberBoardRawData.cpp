@@ -20,22 +20,22 @@ SaberBoardRawData& SaberBoardRawData::operator = ( const SaberBoardRawData& rhs)
 }
 
 
-int SaberBoardRawData::samp_per_chan(){
+unsigned int SaberBoardRawData::samp_per_chan(){
     return size()/GetNChannelEnabled();
 }
 
 
-int SaberBoardRawData::size(){
+unsigned int SaberBoardRawData::size(){
     return 2*(buffer.size()-4);
 }
 
 
-int SaberBoardRawData::size() const{
+unsigned int SaberBoardRawData::size() const{
     return 2*(buffer.size()-4);
 }
 
 
-int SaberBoardRawData::bytes(){
+unsigned int SaberBoardRawData::bytes(){
     return sizeof(buffer[0])*buffer.size();
 }
 
@@ -91,7 +91,7 @@ bool SaberBoardRawData::Valid(){
 }
 
 
-int SaberBoardRawData::GetEventSize(){
+unsigned int SaberBoardRawData::GetEventSize(){
     return buffer[0]&0x0fff;   
 }
 
@@ -101,7 +101,7 @@ unsigned int SaberBoardRawData::GetChannelMask(){
 }
 
 
-int SaberBoardRawData::GetNChannelEnabled(){
+unsigned int SaberBoardRawData::GetNChannelEnabled(){
     uint32_t t = buffer[1]&0xff;
     int n = 0;
     for( int i=0; i<8; i++)
@@ -112,12 +112,12 @@ int SaberBoardRawData::GetNChannelEnabled(){
 
 
 
-int SaberBoardRawData::GetBoardID(){
+unsigned int SaberBoardRawData::GetBoardID(){
     return (buffer[1]>>27)&0x1f;
 }
 
 
-int SaberBoardRawData::GetEventID(){
+unsigned int SaberBoardRawData::GetEventID(){
     return buffer[2]&0xffffff;
 }
 

@@ -55,7 +55,7 @@ private:
         // Used to keep track of added parameters.
         // In the end, all other parameters not added will be added as strings.
 
-    int nb_adc_board;
+    unsigned int nb_adc_board;
 
     uint64_t evt_counter;
 

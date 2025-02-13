@@ -21,16 +21,16 @@ public:
 
     // related to raw memory
 
-    int samp_per_chan();
+    unsigned int samp_per_chan();
         // number of samples per channel in an event
 
-    int size();
+    unsigned int size();
         // number of data samples total allocated for storing waveform
         // headers excluded
     
-    int size() const;
+    unsigned int size() const;
 
-    int bytes();
+    unsigned int bytes();
         // number of data samples in bytes
 
     void AllocateBuffer( unsigned int n);
@@ -46,15 +46,15 @@ public:
 
     int operator[]( int n) const;
 
-    int GetEventSize();
+    unsigned int GetEventSize();
 
     unsigned int GetChannelMask();
 
-    int GetNChannelEnabled();
+    unsigned int GetNChannelEnabled();
 
     int GetBoardID();
 
-    int GetEventID();
+    unsigned int GetEventID();
 
     uint32_t GetTimeTag();
 
