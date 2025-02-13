@@ -26,6 +26,9 @@ protected:
 
     void PostRun();
 
+private:
+
+    int adc_total_size_in_byte;
 };
 
 

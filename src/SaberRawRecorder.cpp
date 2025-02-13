@@ -90,6 +90,8 @@ void SaberRawRecorder::Configure(){
         adc_params[i].Serialize( p_adc );
         output_file.write( p_adc, len );
         delete p_adc;
+
+        adc_total_size_in_byte += adc_params[i].GetTotalSizeInByte();
     }
 
     // Write Global closing header 
@@ -144,12 +146,7 @@ void SaberRawRecorder::PreRun(){
     evt_header[0] = 0xee1234ee;
     evt_header[1] = 4*sizeof(evt_header[0]);
     evt_header[2] = 0;
-    evt_header[3] = 0;
-
-    // calculate bytes per event:
-    //for( unsigned int i=0; i<v1720.size(); ++i){
-      //  evt_header[3] += v1720[i].GetTotalSizeInByte();
-    //}
+    evt_header[3] = adc_total_size_in_byte;
 
     output_file.write( (char*)evt_header, 4*sizeof( evt_header[0] ) );
     
