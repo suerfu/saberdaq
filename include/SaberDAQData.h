@@ -22,7 +22,7 @@ public:
     SaberDAQData( const SaberDAQData& rhs);
         //!< Copy constructor
 
-    ~SaberDAQData(){ header.clear(); };
+    ~SaberDAQData(){ ; };
         //!< Destructor
 
     SaberDAQData& operator=(const SaberDAQData& rhs);
@@ -64,7 +64,7 @@ public:
     //
     void SetConfig( string a){ config = a; }
 
-    void GetConfig(){ return config; }
+    string GetConfig(){ return config; }
 
     // Function to set and retrieve comment used in the run
     //
@@ -90,8 +90,9 @@ public:
     // Functions related to header information
     //
 
-    bool IsHeader(){ return (header.size()!=0); }
+    bool IsHeader(){ return (board_data.size()!=0); }
 
+    /*
     uint32_t GetHeader(){
         uint32_t val = 0;
         if( header.size()>0 )
@@ -111,6 +112,7 @@ public:
         if( header.size()>0 )
             os.write( &header[0], header.size() );
     }
+    */
 
     void SetEventIndex( uint32_t a){ event_index = a; }
 
@@ -139,6 +141,7 @@ private:
     uint32_t event_index;
 
     string random_trigger_src;
+
 };
 
 #endif

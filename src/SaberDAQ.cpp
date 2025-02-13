@@ -250,13 +250,14 @@ void SaberDAQ::Configure(){
     //                          trigger
     // **************************************************************
 
+    CAENV1495Parameter param;
+    
     bool trig_en = cparser->GetBool( "/module/daq/logic_trigger/enable", &found );
 
     if( trig_en && found ){
 
         // create and initialize trigger parameter object from configuration parser
         //
-        CAENV1495Parameter param;
         param.SetParamFromConfig( cparser );
 
         string type = cparser->GetString( "/module/daq/logic_trigger/connect_via" );
@@ -265,10 +266,14 @@ void SaberDAQ::Configure(){
         param_trig.push_back(param);
         v1495.push_back( CAENV1495( (citr->second).handle, param) );
     
-        header_to_send->AddTriggerParameter( param );
-
-        Print( "Trigger configured.\n", DETAIL );
     }
+    else{
+        param_trig.push_back(param);
+    }
+
+    header_to_send->AddTriggerParameter( param );
+        
+    Print( "Trigger configured.\n", DETAIL );
 
 
     // ****************************************************************
@@ -322,11 +327,11 @@ void SaberDAQ::Configure(){
 
     header_to_send->SetTimeStamp( ctrl->GetTimeStamp() );
 
-    PushToBuffer( addr_nxt, header_to_send[i]);
+    PushToBuffer( addr_nxt, header_to_send );
     
     for( int i=0; i<NBUFF-1; i++){
         int id = ctrl->GetIDByName( this->GetModuleName() );
-        PushToBuffer( id, new SaberDAQData( param_adc ) );
+        PushToBuffer( id, new SaberDAQData( param_adc, param_trig[0] ) );
     }
         
     Print( "Data buffer configured.\n", DETAIL);

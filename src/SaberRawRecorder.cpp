@@ -2,6 +2,7 @@
 #include "SaberDAQData.h"
 #include "SaberDAQHeader.h"
 
+#include <unistd.h>
 
 extern "C" SaberRawRecorder* create_SaberRawRecorder( plrsController* c ){ return new SaberRawRecorder(c);}
 
@@ -29,7 +30,7 @@ void SaberRawRecorder::Configure(){
         // If state is no longer CONFIG due to error, return the memory and exit
         if( GetState()!=CONFIG ){
             if( rdo!=0 )
-    	        PushToBuffer( next_addr, rdo);
+    	        PushToBuffer( addr_nxt, rdo);
             return;
         }
     }
@@ -41,7 +42,7 @@ void SaberRawRecorder::Configure(){
     
     // Use the empty data template to configure the output meta data.
     //
-    SaberDAQData* data = reinterpret_cast<SaberDAQdata*>(rdo);
+    SaberDAQData* data = reinterpret_cast<SaberDAQData*>(rdo);
 
     // compute total header size
     //
@@ -57,42 +58,49 @@ void SaberRawRecorder::Configure(){
         header_size += 4*adc_params[i].GetHeaderSize();
     }
 
+    unsigned int len = 0;
+
     // Write Global header
 
     uint32_t glb_header[4];
+
+    len = 4*sizeof( glb_header[0] ) + header_size;
+
     glb_header[0] = 0xaa1234aa;
-    glb_header[1] = 4*sizeof( glb_header[0] ) + header_size;
+    glb_header[1] = len;
     glb_header[2] = 0;
     glb_header[3] = data->GetTimeStamp();
-    output_file.write( glb_header, 4*sizeof(glb_header[0]) );
+    output_file.write( (char*)glb_header, len );
 
 
     // Write trigger parameter
 
-    unsigned int len = 4*trigger_param.GetHeaderSize(); 
-    char* p_trigger = new char[ 4*trigger_param.GetHeaderSize() ];
+    len = 4*trigger_param.GetHeaderSize(); 
+    char* p_trigger = new char[ len ];
     trigger_param.Serialize( p_trigger );
     output_file.write( p_trigger, len );
-    delete p_trigger
+    delete p_trigger;
 
 
     // Write ADC board parameters
 
     for( unsigned int i=0; i<adc_params.size(); i++){
-        char* p_adc = new char[ 4*adc_params[i].GetHeaderSize() ];
+        len = 4*adc_params[i].GetHeaderSize()
+        char* p_adc = new char[ len ];
         adc_params[i].Serialize( p_adc );
-        output_file.write( p_adc);
+        output_file.write( p_adc, len );
         delete p_adc;
     }
 
     // Write Global closing header 
     uint32_t glb_header_cls[2];
+    len = 2*sizeof( glb_header_cls[0]);
     glb_header_cls[0] = 0xaa1234aa;
-    glb_header_cls[1] = 2*sizeof( glb_header_cls[0]);
-    output_file.write( glb_header_cls, 2*sizeof( glb_header_cls[0]));
+    glb_header_cls[1] = len;
+    output_file.write( (char*)glb_header_cls, len );
  
 
-    PushToBuffer( next_addr, rdo);
+    PushToBuffer( addr_nxt, rdo);
     
     Print( this->GetModuleName()+" configured.\n", DEBUG);
 
@@ -139,11 +147,11 @@ void SaberRawRecorder::PreRun(){
     evt_header[3] = 0;
 
     // calculate bytes per event:
-    for( unsigned int i=0; i<v1720.size(); ++i){
-        evt_header[3] += v1720[i].GetTotalSizeInByte();
-    }
+    //for( unsigned int i=0; i<v1720.size(); ++i){
+      //  evt_header[3] += v1720[i].GetTotalSizeInByte();
+    //}
 
-    output_file.write( evt_header, 4*sizeof( evt_header[0] ) );
+    output_file.write( (char*)evt_header, 4*sizeof( evt_header[0] ) );
     
 }
 
@@ -244,18 +252,20 @@ void SaberRawRecorder::PostRun(){
     uint32_t evt_header[2];
     evt_header[0] = 0xee1234ee;
     evt_header[1] = sizeof(evt_header[0])*2;
-    output_file.write( evt_header, 2*sizeof(evt_header[0]) );
+    output_file.write( (char*)evt_header, 2*sizeof(evt_header[0]) );
 
 
     // ****** close global header
+	
+    SaberDAQData* d = reinterpret_cast<SaberDAQData*>(rdo);
 
     uint32_t glb_header[5];
     glb_header[0] = 0xff1234ff;
     glb_header[1] = 5*sizeof( glb_header[0] );
     glb_header[2] = 0;
-    glb_header[3] = rdo->GetTimeStamp();
+    glb_header[3] = d->GetTimeStamp();
     glb_header[4] = 0xff1234ff;
-    output_file.write( glb_header, 5*sizeof( glb_header[0] ) );
+    output_file.write( (char*)glb_header, 5*sizeof( glb_header[0] ) );
     
     PushToBuffer( addr_nxt, rdo);
  
