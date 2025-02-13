@@ -1,5 +1,17 @@
 # saberdaq
 
+*saberdaq* is a Linux library to be used with *polaris* program. These modules are loaded by the *polaris* executable at runtime and are designed to provide DAQ functionalities related to configuring and reading data from CAEN analog-to-digital converter (ADC) cards and FPGA programmable logic boards and storing them in either raw or HDF5 binary format. *saberdaq* was originally developed as the DAQ program of the *SABRE* NaI(Tl) dark matter experiment. Currently, *saberdaq* only on Linux operating system and have hardware implementation of *V1720* and *V1495*.
+
+NOTE: if this program is used in your experiment, please also cite the following work: [Suerfu, B., 2018. Polaris: a general-purpose, modular data acquisition framework. Journal of Instrumentation, 13(12), p.T12004](https://iopscience.iop.org/article/10.1088/1748-0221/13/12/T12004).
+
+## Installation
+
+saberdaq package depends on:
+- [polaris](https://github.com/suerfu/polaris)
+- [CAENVMElib](https://www.caen.it/download/?filter=CAENVMELib%20Library)
+- [H5CPP]()
+ - make sure to add option `-DHDF5_BUILD_CPP_LIB:BOOL=ON` when running `cmake` in build directory.
+
 ## Format of output HDF5 file
 
 In the output HDF5 file, each ADC board will correspond to one group. For CAEN V1720 ADC board, each board (group) will have a number of enabled channels
