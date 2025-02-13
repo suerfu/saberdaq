@@ -68,14 +68,14 @@ void SaberDAQ::Initialize(){
 
                 value.link_number = cparser->GetInt( key+"link_number", &found );
                 if( !found ){
-                    Print( "Cannot find link_number for " +key +vme_type +"\n", ERR);
+                    Print( "Cannot find link_number for " + key + vme_type + "\n", ERR);
                     SetStatus( ERROR );
                     return;
                 }
 
                 value.board_number = cparser->GetInt( key+"board_number", &found );
                 if( !found ){
-                    Print( "Cannot find board_number for " +key +vme_type +"\n", ERR);
+                    Print( "Cannot find board_number for " + key + vme_type + "\n", ERR);
                     SetStatus( ERROR );
                     return;
                 }
