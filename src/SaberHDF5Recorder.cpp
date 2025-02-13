@@ -200,17 +200,17 @@ void SaberHDF5Recorder::ConfigureOutput( SaberDAQData* data ){
         return;
     }
     
-    ConfigParser rawconfig = GetConfigParser();
+    ConfigParser* rawconfig = GetConfigParser();
     
     // ******************************
     //          Global header 
     // ******************************
     
     h5man->AddAttribute( "/", "version", string("1.0.0") );
-    h5man->AddAttribute( "/", "comment", rawconfig.GetString("/cmdl/comment") );
+    h5man->AddAttribute( "/", "comment", rawconfig->GetString("/cmdl/comment") );
 
     std::ostringstream ostr;
-    rawconfig.Print( ostr );
+    rawconfig->Print( ostr );
     h5man->AddAttribute( "/", "config", ostr.str() );
 
     h5man->AddAttribute( "/", "timestamp", data->GetTimeStamp() );
