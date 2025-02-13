@@ -251,10 +251,10 @@ void SaberHDF5Recorder::WriteToOutput( SaberDAQData* data){
 
         // first find out the dimension of the data matrix
         //
-        unsigned int nchannel = data[i].GetNChannelEnabled();
+        unsigned int nchannel = (*data)[i].GetNChannelEnabled();
             // Nb of channels enabled.
             // This is just an alias to make things more concise.
-        unsigned int nsample = data[i].samp_per_chan();
+        unsigned int nsample = (*data)[i].samp_per_chan();
             // Nb of samples in each event.
 
         unsigned int dim[2] = { nchannel, nsample};
@@ -281,7 +281,7 @@ void SaberHDF5Recorder::WriteToOutput( SaberDAQData* data){
 
         // Write the actual waveform to data, noting that the first 4 32-bit words are headers
         //
-        h5man->WriteData( data->GetBufferAddr()+4, evtname.str(), H5::PredType::NATIVE_UINT16, 2, dim);
+        h5man->WriteData( (*data).GetBufferAddr()+4, evtname.str(), H5::PredType::NATIVE_UINT16, 2, dim);
         
         evt_counter++;
             // Everytime an event is written, increment the counter to keep track of number of events.
@@ -289,9 +289,9 @@ void SaberHDF5Recorder::WriteToOutput( SaberDAQData* data){
 
         // write other attributes
         //
-        uint32_t ttt = data[i].GetTimeTag();
+        uint32_t ttt = (*data)[i].GetTimeTag();
         uint64_t index = evt_counter;
-        uint64_t eventID = data[i].GetEventID();
+        uint64_t eventID = (*data)[i].GetEventID();
         
         h5man->AddAttribute( evtname.str(), "index", index);
         h5man->AddAttribute( evtname.str(), "eventID", eventID);
