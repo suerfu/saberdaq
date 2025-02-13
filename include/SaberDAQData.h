@@ -74,14 +74,10 @@ public:
 
     // Function to set and retrieve begin and end timestamp
     //
-    void SetTimeStampBegin( uint32_t a ){ timestamp_begin = a; }
+    void SetTimeStamp( uint32_t a ){ timestamp = a; }
     
-    uint32_t GetTimeStampBegin(){ return timestamp_begin; }
+    uint32_t GetTimeStamp(){ return timestamp; }
 
-    void SetTimeStampEnd( uint32_t a ){ timestamp_end = a; }
-
-    uint32_t GetTimeStampEnd(){ return timestamp_end; }
-    
     void SetRandomTriggerPeriod( uint32_t a){ random_trigger_period = a; }
 
     uint32_t GetRandomTriggerPeriod(){ return random_trigger_period; }
@@ -136,10 +132,8 @@ private:
 
     string config;
 
-    uint32_t timestamp_begin;
+    uint32_t timestamp;
     
-    uint32_t timestamp_end;
-
     uint32_t random_trigger_period;
 
     uint32_t event_index;
