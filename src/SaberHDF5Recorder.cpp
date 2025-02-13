@@ -163,7 +163,7 @@ string SaberHDF5Recorder::GetFileName(){
     stringstream ss;
     ss << file_prefix;
 
-    time_t t = GetConfigParser()->GetTimeStamp();
+    time_t t = ctrl->GetTimeStamp();
     struct tm tm = *localtime( &t );
 
     ss << "_" << tm.tm_year+1900;
