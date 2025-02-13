@@ -56,7 +56,7 @@ void SaberHDF5Recorder::Configure(){
     }
 
     // Use the empty data template to configure the output meta data.
-    ConfigureOutput( reinterpret_cast<SaberDAQdata*>(rdo) );
+    ConfigureOutput( reinterpret_cast<SaberDAQData*>(rdo) );
     Print("HDF5 file metadata configured.\n", DEBUG);
 
     // After configuring the output, give the data to the next module.
@@ -163,6 +163,7 @@ string SaberHDF5Recorder::GetFileName(){
     stringstream ss;
     ss << file_prefix;
 
+    time_t t = GetConfigParser()->GetTimeStamp();
     struct tm tm = *localtime( &t );
 
     ss << "_" << tm.tm_year+1900;
