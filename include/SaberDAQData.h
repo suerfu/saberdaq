@@ -44,7 +44,7 @@ public:
         //!< Function to write output directly to file
         //!< Declared to be virtual so that header object can write differently
 
-    int size(){ return board_data.size();}
+    unsigned int size(){ return board_data.size();}
         //!< Returns number of boards recorded in this object.
 
     SaberBoardRawData& operator[]( unsigned int n);

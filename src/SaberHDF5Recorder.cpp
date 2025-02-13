@@ -236,11 +236,8 @@ void SaberHDF5Recorder::ConfigureOutput( SaberDAQData* data ){
     //          Trigger
     // ******************************
 
-    vector<CAENV1495Parameter> trigparam = data->GetTriggerParameter();
-
-    if( trigparam.size()>0 ){
-        trigparam[0].ExportHDF5( h5man );
-    }
+    CAENV1495Parameter trigparam = data->GetTriggerParameter();
+    trigparam.ExportHDF5( h5man );
 
 }
 
