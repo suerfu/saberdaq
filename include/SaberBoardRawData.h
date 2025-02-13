@@ -25,10 +25,13 @@ public:
         // number of samples per channel in an event
 
     int size();
+        // number of data samples total allocated for storing waveform
+        // headers excluded
     
     int size() const;
 
     int bytes();
+        // number of data samples in bytes
 
     void AllocateBuffer( unsigned int n);
 

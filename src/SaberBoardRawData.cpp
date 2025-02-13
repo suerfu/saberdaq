@@ -41,8 +41,9 @@ int SaberBoardRawData::bytes(){
 
 
 void SaberBoardRawData::AllocateBuffer( unsigned int n){
-    for( unsigned int i=buffer.size(); i<n/4; ++i)
+    for( unsigned int i=buffer.size(); i<n/4; ++i){
         buffer.push_back(0);
+    }
 }
 
 
