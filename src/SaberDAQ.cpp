@@ -226,10 +226,10 @@ void SaberDAQ::Configure(){
 
         if( cparser->GetString("/module/daq/periodic_trigger/source" )=="fpga" ){
             rand_trig_via_fpga = true;
-            header_to_send.SetRandomTriggerSource("fpga");
+            header_to_send->SetRandomTriggerSource("fpga");
         }
         else{
-            header_to_send.SetRandomTriggerSource("software");
+            header_to_send->SetRandomTriggerSource("software");
             rand_trig_via_fpga = false;
         }
 
@@ -240,7 +240,7 @@ void SaberDAQ::Configure(){
             rand_trig_period = 1000;
         }
 
-        header_to_send.SetRandomTriggerPeriod( rand_trig_period);
+        header_to_send->SetRandomTriggerPeriod( rand_trig_period);
 
         Print( "Periodic sampling enabled and configured.\n", DETAIL);
     }
@@ -265,7 +265,7 @@ void SaberDAQ::Configure(){
         param_trig.push_back(param);
         v1495.push_back( CAENV1495( (citr->second).handle, param) );
     
-        header_to_send.AddTriggerParameter( param );
+        header_to_send->AddTriggerParameter( param );
 
         Print( "Trigger configured.\n", DETAIL );
     }
@@ -303,7 +303,7 @@ void SaberDAQ::Configure(){
             if( param.runmode==FIRST_TRIG_CON )
                 ext_trig_to_start = true;
 
-            header_to_send.AddADCParameter( param );
+            header_to_send->AddADCParameter( param );
 
         }
 
@@ -320,7 +320,7 @@ void SaberDAQ::Configure(){
     // **********************************************************************
 
 
-    header_to_send.SetTimeStamp( ctrl->GetTimeStamp() );
+    header_to_send->SetTimeStamp( ctrl->GetTimeStamp() );
 
     PushToBuffer( addr_nxt, header_to_send[i]);
     
