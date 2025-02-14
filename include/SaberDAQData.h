@@ -90,7 +90,7 @@ public:
     // Functions related to header information
     //
 
-    bool IsHeader(){ return (board_data.size()!=0); }
+    bool IsHeader(){ return (board_data.size()==0); }
 
     /*
     uint32_t GetHeader(){

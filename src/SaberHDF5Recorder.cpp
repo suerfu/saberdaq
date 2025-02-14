@@ -10,15 +10,33 @@ extern "C" SaberHDF5Recorder* create_SaberHDF5Recorder( plrsController* c ){ ret
 extern "C" void destroy_SaberHDF5Recorder( SaberHDF5Recorder* p ){ delete p;}
 
 
-SaberHDF5Recorder::SaberHDF5Recorder( plrsController* c) : plrsModuleRecorder(c){}
+SaberHDF5Recorder::SaberHDF5Recorder( plrsController* c) : plrsModuleRecorder(c){ next_addr = -1; }
 
 
 SaberHDF5Recorder::~SaberHDF5Recorder(){}
 
 
+int SaberHDF5Recorder::GetNextModuleID(){
+
+    if( next_addr<0 ){
+
+	    string next_module = GetConfigParser()->GetString("/module/"+GetModuleName()+"/next_module", "");
+	        // if not found, returns default value of ""
+	    if( next_module!="" ){
+	        next_addr = ctrl->GetIDByName( next_module );   // nonnegative if valid
+	    }
+	    if( next_module=="" || next_addr<0 ){
+	        Print("Next module not specified. Setting up loop-back.\n", INFO);
+	        next_addr = ctrl->GetIDByName( this->GetModuleName() );
+        }
+    }
+
+    return next_addr;
+}
+
 void SaberHDF5Recorder::Configure(){
 
-    Print("configuring...\n", DEBUG);
+    Print("Configuring...\n", DEBUG);
 
     // =========================================================
     // Initialize HDF5 manager. Data will be written in ConfigureOutput..
@@ -51,7 +69,7 @@ void SaberHDF5Recorder::Configure(){
     // If state is no longer CONFIG due to error, return the memory and exit
     if( GetState()!=CONFIG ){
         if( rdo!=0 )
-    	    PushToBuffer( next_addr, rdo);
+    	    PushToBuffer( GetNextModuleID(), rdo);
         return;
     }
 
@@ -60,7 +78,7 @@ void SaberHDF5Recorder::Configure(){
     Print("HDF5 file metadata configured.\n", DEBUG);
 
     // After configuring the output, give the data to the next module.
-	PushToBuffer( next_addr, rdo);
+    PushToBuffer( GetNextModuleID(), rdo);
 
     Print( this->GetModuleName()+" configured.\n", DEBUG);
 
@@ -68,9 +86,11 @@ void SaberHDF5Recorder::Configure(){
 
 void SaberHDF5Recorder::Deconfigure(){
 
-    void* rdo = PullFromBuffer();
+    Print( this->GetModuleName() + " deconfiguring...\n", DEBUG);
     
-    while( rdo!=0 && GetState()!=ERROR ){
+    void* rdo = 0;
+    
+    while( GetState()!=ERROR ){
         
         rdo = PullFromBuffer();
         
@@ -79,18 +99,21 @@ void SaberHDF5Recorder::Deconfigure(){
             SaberDAQData* d = reinterpret_cast<SaberDAQData*>(rdo);
             
             if ( d->IsHeader() ){
+                Print("Closing header received.\n", DEBUG);
                 CloseOutput( d );
-                PushToBuffer( addr_nxt, d);
+                PushToBuffer( GetNextModuleID(), d);
                 return;
             }
             else{
+                Print("Processing events...\n", DEBUG);
                 WriteToOutput( d );
-                PushToBuffer( addr_nxt, d);
+                PushToBuffer( GetNextModuleID(), d);
                 rdo = 0;
-                sleep(1);
             }
         }
     }
+    
+    Print( this->GetModuleName() + " deconfigured.\n", DEBUG);
 }
 
 
@@ -103,7 +126,7 @@ void SaberHDF5Recorder::PreRun(){
 
 void SaberHDF5Recorder::Run(){
 
-    Print( "running...\n", DEBUG);
+    Print( "Running...\n", DEBUG);
 
     void* rdo = 0;
 
@@ -119,14 +142,22 @@ void SaberHDF5Recorder::Run(){
             // otherwise there is new event to be written to disk
 
         if( rdo!=0 ){
-            if( output_file ){
-                SaberDAQData* d = reinterpret_cast<SaberDAQData*>(rdo);
-                d->Write( output_file);
+
+            SaberDAQData* d = reinterpret_cast<SaberDAQData*>(rdo);
+
+            if( !d->IsHeader() ){
+                WriteToOutput( d );
+                PushToBuffer( GetNextModuleID(), rdo);
+                count++;
             }
-            PushToBuffer( addr_nxt, rdo);
+            // if it is a header, then run is finished
+            // put it in recorder FIFO buffer for reprocessing in deconfig phase
+            else{
+                Print( "Closing header received during Run.\n", INFO);
+                PushToBuffer( ctrl->GetIDByName( this->GetModuleName()), rdo);
+                break;
+            }
             rdo = 0;
-            
-            count++;
         }
         else{
             break;
@@ -144,7 +175,7 @@ void SaberHDF5Recorder::Run(){
         }
     }
 
-    Print( "run ended.\n", DEBUG);
+    Print( "Run ended.\n", DEBUG);
 }
 
 
@@ -158,7 +189,7 @@ string SaberHDF5Recorder::GetFileName(){
         return GetConfigParser()->GetString("/cmdl/output");
     }
 
-    string file_prefix = file_prefix = GetConfigParser()->GetString( "/cmdl/prefix", "Default");
+    string file_prefix = GetConfigParser()->GetString( "/cmdl/prefix", "Default");
 
     stringstream ss;
     ss << file_prefix;
@@ -180,6 +211,8 @@ string SaberHDF5Recorder::GetFileName(){
 
 
 void SaberHDF5Recorder::CloseOutput( SaberDAQData* data ){
+
+    Print( "Closing output HDF5 file...", INFO );
     
     h5man->AddAttribute( "/", "timestamp_end", data->GetTimeStamp() );
    
@@ -187,6 +220,10 @@ void SaberHDF5Recorder::CloseOutput( SaberDAQData* data ){
         stringstream ss;
         ss << "/adc_" << i;
         h5man->AddAttribute( ss.str(), "nb_events", evt_counter );
+    
+        stringstream ss2;
+        ss2 << evt_counter << "events recorded.\n";
+        Print( ss2.str(), INFO );
     }
 
     h5man->CloseFile();
@@ -273,7 +310,7 @@ void SaberHDF5Recorder::WriteToOutput( SaberDAQData* data){
         // If event counter is zero, then this is the first event in the dataset, create the dataset group first.
         //
         if( evt_counter==0 ){
-            Print(  string("Opening group ") + dsetname.str(), INFO);
+            Print(  string("Opening group ") + dsetname.str() + string("\n"), INFO);
             h5man->OpenGroup( dsetname.str() );
         }
 

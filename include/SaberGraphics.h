@@ -47,7 +47,11 @@ protected:
 
     void CommandHandler();
 
+    int GetNextModuleID();
+
 private:
+
+    int next_addr;
 
     int board;
 

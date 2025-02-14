@@ -46,6 +46,8 @@ private:
 
     string GetFileName();
 
+    int GetNextModuleID();
+
     H5FileManager* h5man;
 
     //uint32_t timestamp_g;   // Global timestamp at the beginning of first dump.

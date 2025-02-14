@@ -22,6 +22,8 @@ SaberDAQ::SaberDAQ( plrsController* ctrl) : plrsModuleDAQ( ctrl){
 
     event_counter = 0;
     total_event_number = 0;
+
+    next_addr = -1;
 }
 
 
@@ -37,6 +39,23 @@ SaberDAQ::~SaberDAQ(){
 
 }
 
+
+int SaberDAQ::GetNextModuleID(){
+
+    if( next_addr<0 ){
+        string next_module = GetConfigParser()->GetString("/module/"+GetModuleName()+"/next_module", "");
+            // if not found, returns default value of ""
+        if( next_module!="" ){
+            next_addr = ctrl->GetIDByName( next_module );   // nonnegative if valid
+        }
+        if( next_module=="" || next_addr<0 ){
+            Print("Next module not specified. Setting up loop-back.\n", INFO);
+            next_addr = ctrl->GetIDByName( this->GetModuleName() );
+        }
+    }
+
+    return next_addr;
+}
 
 // Establish connection with the VME crate.
 void SaberDAQ::Initialize(){
@@ -213,7 +232,6 @@ void SaberDAQ::Configure(){
     bool found = false;;
     std::map<string, VMEConnection>::const_iterator citr;
 
-    SaberDAQData* header_to_send = new SaberDAQData();
    
     
     // ***************************************************************
@@ -226,21 +244,21 @@ void SaberDAQ::Configure(){
 
         if( cparser->GetString("/module/daq/periodic_trigger/source" )=="fpga" ){
             rand_trig_via_fpga = true;
-            header_to_send->SetRandomTriggerSource("fpga");
+            //header_to_send->SetRandomTriggerSource("fpga");
         }
         else{
-            header_to_send->SetRandomTriggerSource("software");
+            //header_to_send->SetRandomTriggerSource("software");
             rand_trig_via_fpga = false;
         }
 
-         rand_trig_period = cparser->GetInt("/module/daq/periodic_trigger/rate", &found );
+        rand_trig_period = cparser->GetInt("/module/daq/periodic_trigger/rate", &found );
 
         if( !found ){
             Print("Cannot find sampling rate. Using default value (1 Hz).\n", ERR);
             rand_trig_period = 1000;
         }
 
-        header_to_send->SetRandomTriggerPeriod( rand_trig_period);
+        //header_to_send->SetRandomTriggerPeriod( rand_trig_period );
 
         Print( "Periodic sampling enabled and configured.\n", DETAIL);
     }
@@ -271,7 +289,7 @@ void SaberDAQ::Configure(){
         param_trig.push_back(param);
     }
 
-    header_to_send->AddTriggerParameter( param );
+    //header_to_send->AddTriggerParameter( param );
         
     Print( "Trigger configured.\n", DETAIL );
 
@@ -308,8 +326,7 @@ void SaberDAQ::Configure(){
             if( param.runmode==FIRST_TRIG_CON )
                 ext_trig_to_start = true;
 
-            header_to_send->AddADCParameter( param );
-
+            //header_to_send->AddADCParameter( param );
         }
 
     }
@@ -325,9 +342,22 @@ void SaberDAQ::Configure(){
     // **********************************************************************
 
 
+    SaberDAQData* header_to_send = new SaberDAQData( param_adc, param_trig[0] );
+    
+    if( rand_trig ){
+
+        if ( rand_trig_via_fpga ){
+            header_to_send->SetRandomTriggerSource("fpga");
+        }
+        else{
+            header_to_send->SetRandomTriggerSource("software");
+        }
+        header_to_send->SetRandomTriggerPeriod( rand_trig_period );
+    }
+
     header_to_send->SetTimeStamp( ctrl->GetTimeStamp() );
 
-    PushToBuffer( addr_nxt, header_to_send );
+    PushToBuffer( GetNextModuleID(), header_to_send );
     
     for( int i=0; i<NBUFF-1; i++){
         int id = ctrl->GetIDByName( this->GetModuleName() );
@@ -427,8 +457,8 @@ void SaberDAQ::Event(){
     void* vptr = 0;
     SaberDAQData* rdo = 0;
 
-
     while( vptr==0 ){
+
         vptr = PullFromBuffer();
         
         if( vptr!=0 ){
@@ -461,7 +491,7 @@ void SaberDAQ::Event(){
         }
     }
 
-    PushToBuffer( addr_nxt, rdo);
+    PushToBuffer( GetNextModuleID(), rdo);
     rdo = 0;
     vptr = 0;
 
@@ -521,6 +551,16 @@ void SaberDAQ::PreRun(){
 }
 
 
+void SaberDAQ::Run(){
+
+    while( GetState()==RUN ){
+        PreEvent();
+        Event();
+        PostEvent();
+    }
+
+}
+
 
 // PostRun, called when the entire run is finished 
 // to mark the end of the run, a special header is created and sent to other modules
@@ -532,7 +572,7 @@ void SaberDAQ::PostRun(){
 
     evt->SetTimeStamp( ctrl->GetTimeStamp() );
     
-    PushToBuffer( addr_nxt, evt);
+    PushToBuffer( GetNextModuleID(), evt);
     
     StopDAQ();
 }
