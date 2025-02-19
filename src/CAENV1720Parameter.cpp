@@ -660,6 +660,8 @@ void CAENV1720Parameter::ExportHDF5( H5FileManager* h5man){
 
         if ( ChannelNEnabled( j )==false ){
             cout << "Channel " << j << " is not enabled. Skipping...\n";
+            channel_order++;
+	        // previously above line was missing, which would cause channel index not to increment when previous channel is not enabled.
             continue;
         }
         cout << "Channel " << j << " is enabled. Processing...\n";
