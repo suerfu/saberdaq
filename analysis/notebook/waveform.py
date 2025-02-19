@@ -79,52 +79,30 @@ def display_attributes( filename, print_config = False ):
 def get_waveform( filename, index = 0, channel = 0 ) :
 
     data = None
+    file = None
     
-    try :
+    if isinstance( filename, str):
         file = h5.File( filename, 'r' )
-        
-        max_evt = file['/adc_0/'].attrs['nb_events']        
-        if index > file['/adc_0/'].attrs['nb_events'] :
-            file.close()
-            raise Exception('Trying to access event index {} beyond number of events {}'.format( index, max_evt) )
+    else:
+        file = filename
             
-        event = 'event_{}'.format( index )
-        data = np.array( file['adc_0'][event] )
+    max_evt = file['/adc_0/'].attrs['nb_events']        
         
-        if channel > len( data[0,:] ) :
-            raise Exception( 'Trying to access channel index {} beyond number of enabled channels {}'.format( channel, len(data[0,:]) ) )
-    
-    except Exception as e:
-        print('Exception has ocurred:', repr(e) )
+    if index > file['/adc_0/'].attrs['nb_events'] :
         file.close()
-        return None
+        raise Exception('Trying to access event index {} beyond number of events {}'.format( index, max_evt) )
+            
+    event = 'event_{}'.format( index )
+    data = np.array( file['adc_0'][event] )
         
-    file.close()
+    if channel > len( data[0,:] ) :
+        raise Exception( 'Trying to access channel index {} beyond number of enabled channels {}'.format( channel, len(data[0,:]) ) )
+
+    if isinstance( filename, str) :
+        file.close()
     
     return np.array( data[channel,:] )
     
-    
-#     ArgMin=np.argmin(data)
-#     pre_trig_window = file['adc_0'].attrs['pre_trigger_sample']
-#     baseL,BaseSTD=Baseline(data, pre_trig_window)
-#     data=data-baseL
-#     Start=np.where(data[:pre_trig_window]>-5*BaseSTD)[0][-1]
-
-
-#     fig, ax = plt.subplots(figsize=(24, 14));
-#     plt.plot( data )
-#     ones = np.ones(len(data))
-#     plt.plot(ones*0,'--')
-#     print(pre_trig_window)
-#     # plt.plot([ArgMin,ArgMin],[np.max(data),np.min(data)])
-#     plt.plot([pre_trig_window,pre_trig_window],[np.max(data),np.min(data)])
-#     plt.plot([Start,Start],[np.max(data),np.min(data)])
-#     plt.plot([Start+750,Start+750],[np.max(data),np.min(data)])
-#     # plt.plot([pre_trig_window-50,pre_trig_window-50],[np.max(data),np.min(data)])
-#     # plt.plot([pre_trig_window+400,pre_trig_window+400],[np.max(data),np.min(data)])
-#     plt.show()
-
-
 #############################################################
 # function to estimate baseline by summing pre trigger window
 #############################################################
@@ -132,6 +110,7 @@ def get_waveform( filename, index = 0, channel = 0 ) :
 def baseline( data, pre_trig_window ):
     arr = data[ 0:pre_trig_window-5 ]
     return np.average( arr ), np.std( arr )
+
 
 ##########################
 # main program
@@ -255,33 +234,33 @@ def main():
             
             nb_events = 0
             
+            Sum = 0            
+            
             with h5.File( file, 'r') as f:
+                
                 nb_events = f['adc_0'].attrs['nb_events']
             
-            Sum = 0
-            
-            nSum = args.event[0]
-                # --event argument will be number of events to sum if in --average/--sum mode
-                # if it is not specified, then all events will be processed.
+                nSum = args.event[0]
+                    # --event argument will be number of events to sum if in --average/--sum mode
+                    # if it is not specified, then all events will be processed.
+                if nSum == 0:
+                    nSum = nb_events
 
-            if nSum == 0:
-                nSum = nb_events
-                
-            for event in range( 0, min(nb_events, nSum ) ):
-                
-                if event%1000 == 0:
-                    print('Processing event {}'.format(event), end='\r' )
+                for event in range( 0, min(nb_events, nSum ) ):
 
-                data = get_waveform( file, event )
-                
-                # always subtract baseline
-                avg, _ = baseline(data, pre_trig_window)
-                Sum += ( avg - data )
-            
-            print()
+                    if event%1000 == 0:
+                        print('Processing event {}'.format(event), end='\r' )
+
+                    data = get_waveform( file, event )
+
+                    # always subtract baseline
+                    avg, _ = baseline(data, pre_trig_window)
+                    Sum += ( avg - data )
+
+                print()
 
             Sum /= np.max(Sum)
-                # normalize such that highest sample is 1.
+                    # normalize such that highest sample is 1.
             
             plt.plot( 0.004 * np.arange( 0, len(Sum), 1), Sum, label = file.split('/')[-1] )
     
