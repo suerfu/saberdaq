@@ -101,7 +101,7 @@ def get_waveform( filename, index = 0, channel = 0 ) :
         
     file.close()
     
-    return data[channel,:]
+    return np.array( data[channel,:] )
     
     
 #     ArgMin=np.argmin(data)
@@ -125,6 +125,14 @@ def get_waveform( filename, index = 0, channel = 0 ) :
 #     plt.show()
 
 
+#############################################################
+# function to estimate baseline by summing pre trigger window
+#############################################################
+
+def baseline( data, pre_trig_window ):
+    arr = data[ 0:pre_trig_window-5 ]
+    return np.average( arr ), np.std( arr )
+
 ##########################
 # main program
 ##########################
@@ -141,34 +149,34 @@ def main():
                                      description='Displays saberdaq waveform recorded in the HDF5 file', 
                                      epilog='')
 
-    parser.add_argument('-i', '--info', 
+    parser.add_argument( '-i', '--info', 
                         metavar = 'info',
                         nargs = '*',
                         help = 'Displays information about the HDF5 files. No other actions will be taken.' )
     
-    parser.add_argument('-v', '--verbose', 
+    parser.add_argument( '-v', '--verbose', 
                         action = 'store_true',
                         help = 'Verbosity: displays configuration file as well in info mode.' )
-        # positional argument
         
-    parser.add_argument('-f', '--file', 
+    parser.add_argument( '-f', '--file', 
                         metavar = 'filename(s)',
                         nargs = '*',
-                        help = 'HDF5 files to read and display event(s)' )
-        # positional argument
-
-#     parser.add_argument('-c', '--channel', 
-#                         metavar = 'channel ID',
-#                         nargs = '*',
-#                         type = int,
-#                         help = 'Channel ID to be displayed' )
-        
-    parser.add_argument('-e', '--event', 
+                        help = 'HDF5 files to read and display event(s).' )
+    
+    parser.add_argument( '-b', '--baseline', 
+                        action = 'store_true',
+                        help = 'Subtracts baseline. Baseline estimated as average of waveform in the pre-trigger window.' )
+    
+    parser.add_argument( '-s', '--sum', 
+                        action = 'store_true',
+                        help = 'Computes average pulse shape by averaging all waveforms in the file or specified via --event.' )
+    
+    parser.add_argument( '-e', '--event', 
                         metavar = 'event ID',
                         nargs = '*',
                         type = int,
                         default = [0],
-                        help = 'ID of event(s) to be displayed' )
+                        help = 'ID of event(s) to be displayed. In sum/average mode, this is the number of events to sum.' )
 
     args = parser.parse_args()
     
@@ -208,43 +216,80 @@ def main():
 
         minimum, maximum = 4096, 0
         
-        for event in args.event:
+        #########################################################
+        # if not in average mode, plot individual selected pulses
+        #########################################################
+        
+        if args.sum == False:
 
-            data = get_waveform( file, event )
+            for event in args.event:
 
-            #################
-            # making the plot
-            #################
+                data = get_waveform( file, event )
+                
+                ###################################################
+                # if argument is specified, subtract baseline first
+                ###################################################
+                
+                if args.baseline == True :
+                    avg, _ = baseline(data, pre_trig_window)
+                    data = ( avg - data )
 
-            plt.plot( 0.004 * np.arange( 0, len(data), 1), data, label= file.split('/')[-1]+', event {}'.format( event ) )
-            
-#             threshold = 4060
-#                 # manual fix of a bug regarding storing config parameter when 1st channel is not enabled
-            
-            if threshold_prev != threshold:
-                plt.plot( 0.004 * np.arange( 0, len(data), 1), threshold * np.ones( len(data) ), 
-                         '--', label='threshold ({})'.format( file.split('/')[-1])  )
-                threshold_prev = threshold
-            
-            minimum = min( np.min(data), minimum)
-            maximum = max( np.max(data), maximum)
-            #ones = np.ones(len(data))
-            #plt.plot(ones*0,'--')
+                #################
+                # making the plot
+                #################
 
-            #print(pre_trig_window)
-            # plt.plot([ArgMin,ArgMin],[np.max(data),np.min(data)])
+                plt.plot( 0.004 * np.arange( 0, len(data), 1), data, label = file.split('/')[-1]+', event {}'.format( event ) )
 
-            #plt.plot([pre_trig_window,pre_trig_window],[np.max(data),np.min(data)])
-            #plt.plot([Start,Start],[np.max(data),np.min(data)])
-            #plt.plot([Start+750,Start+750],[np.max(data),np.min(data)])
-            # plt.plot([pre_trig_window-50,pre_trig_window-50],[np.max(data),np.min(data)])
-            # plt.plot([pre_trig_window+400,pre_trig_window+400],[np.max(data),np.min(data)])
+                if threshold_prev != threshold and args.baseline == False:
+                    plt.plot( 0.004 * np.arange( 0, len(data), 1), threshold * np.ones( len(data) ), 
+                             '--', label='threshold ({})'.format( file.split('/')[-1])  )
+                    threshold_prev = threshold
+
+                minimum = min( np.min(data), minimum)
+                maximum = max( np.max(data), maximum)
     
-    delta = maximum - minimum
-    plt.plot( 0.004 * pre_trig_window * np.ones(2), [minimum - .1*delta, maximum + 0.1*delta], '--', label='trigger point'  )
+            delta = maximum - minimum
+            plt.plot( 0.004 * pre_trig_window * np.ones(2), [minimum - .1*delta, maximum + 0.1*delta], '--', label='trigger point'  )
+    
+        else:
+            
+            nb_events = 0
+            
+            with h5.File( file, 'r') as f:
+                nb_events = f['adc_0'].attrs['nb_events']
+            
+            Sum = 0
+            
+            nSum = args.event[0]
+                # --event argument will be number of events to sum if in --average/--sum mode
+                # if it is not specified, then all events will be processed.
 
+            if nSum == 0:
+                nSum = nb_events
+                
+            for event in range( 0, min(nb_events, nSum ) ):
+                
+                if event%1000 == 0:
+                    print('Processing event {}'.format(event), end='\r' )
+
+                data = get_waveform( file, event )
+                
+                # always subtract baseline
+                avg, _ = baseline(data, pre_trig_window)
+                Sum += ( avg - data )
+            
+            print()
+
+            Sum /= np.max(Sum)
+                # normalize such that highest sample is 1.
+            
+            plt.plot( 0.004 * np.arange( 0, len(Sum), 1), Sum, label = file.split('/')[-1] )
+    
     plt.xlabel('Time [us]')
+    
     plt.ylabel('ADC Count [a.u.]')
+    plt.yscale('log')
+    
     plt.legend()
     plt.show()
 
