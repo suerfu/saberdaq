@@ -38,7 +38,7 @@ colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
 # function to displays file attributes iteratively
 ##################################################
 
-def display_attributes( filename ):
+def display_attributes( filename, print_config = False ):
     
     file = h5.File( filename, 'r' )
     
@@ -46,7 +46,12 @@ def display_attributes( filename ):
     
     for key in file.attrs.keys():
         if key=='config':
-            continue
+            
+            if print_config:
+                print( '/'+key, ' : ', file.attrs[key])
+            else:
+                continue
+        
         print( '/'+key, ' : ', file.attrs[key])
 
     print()
@@ -140,6 +145,10 @@ def main():
                         metavar = 'info',
                         nargs = '*',
                         help = 'Displays information about the HDF5 files. No other actions will be taken.' )
+    
+    parser.add_argument('-v', '--verbose', 
+                        action = 'store_true',
+                        help = 'Verbosity: displays configuration file as well in info mode.' )
         # positional argument
         
     parser.add_argument('-f', '--file', 
@@ -172,7 +181,7 @@ def main():
         # for-loop for processing the files
         # iterate through each file
         for file in args.info:
-            display_attributes( file )
+            display_attributes( file, args.verbose )
             exit(0)
     
     ######################
@@ -185,8 +194,19 @@ def main():
     # process the list of files specified
     #####################################
 
+    pre_trig_window = 0
+    threshold = 0
+    threshold_prev = 0
+        
     for file in args.file:
+        
         print('Processing', file)
+        
+        with h5.File( file, 'r') as f:
+            pre_trig_window = f['adc_0'].attrs['pre_trigger_sample']
+            threshold = f['adc_0'].attrs['channel_threshold']
+
+        minimum, maximum = 4096, 0
         
         for event in args.event:
 
@@ -197,6 +217,17 @@ def main():
             #################
 
             plt.plot( 0.004 * np.arange( 0, len(data), 1), data, label= file.split('/')[-1]+', event {}'.format( event ) )
+            
+#             threshold = 4060
+#                 # manual fix of a bug regarding storing config parameter when 1st channel is not enabled
+            
+            if threshold_prev != threshold:
+                plt.plot( 0.004 * np.arange( 0, len(data), 1), threshold * np.ones( len(data) ), 
+                         '--', label='threshold ({})'.format( file.split('/')[-1])  )
+                threshold_prev = threshold
+            
+            minimum = min( np.min(data), minimum)
+            maximum = max( np.max(data), maximum)
             #ones = np.ones(len(data))
             #plt.plot(ones*0,'--')
 
@@ -209,7 +240,9 @@ def main():
             # plt.plot([pre_trig_window-50,pre_trig_window-50],[np.max(data),np.min(data)])
             # plt.plot([pre_trig_window+400,pre_trig_window+400],[np.max(data),np.min(data)])
     
-    
+    delta = maximum - minimum
+    plt.plot( 0.004 * pre_trig_window * np.ones(2), [minimum - .1*delta, maximum + 0.1*delta], '--', label='trigger point'  )
+
     plt.xlabel('Time [us]')
     plt.ylabel('ADC Count [a.u.]')
     plt.legend()
