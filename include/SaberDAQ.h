@@ -53,6 +53,8 @@ protected:
 
     void PreRun();
 
+    void Run();
+
     void PreEvent();
 
     void Event();
@@ -65,7 +67,11 @@ protected:
 
     vector<CAENV1720Parameter> GetADCParameter(){ return param_adc;}
 
+    int GetNextModuleID();
+
 private:
+
+    int next_addr;
 
     CVErrorCodes error_code;
         //!< Store the status of communication with VME.

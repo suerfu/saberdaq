@@ -16,7 +16,7 @@ public:
 
 protected:
 
-    void Configure(){ plrsModuleRecorder::Configure(); }
+    void Configure();
 
 	void Deconfigure();
 
@@ -26,6 +26,9 @@ protected:
 
     void PostRun();
 
+private:
+
+    int adc_total_size_in_byte;
 };
 
 

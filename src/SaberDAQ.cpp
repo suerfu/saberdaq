@@ -8,7 +8,6 @@
 
 using namespace std;
 
-
 extern "C" SaberDAQ* create_SaberDAQ( plrsController* c ){ return new SaberDAQ(c);}
     //!< create method to return the DAQ object.
 
@@ -23,6 +22,8 @@ SaberDAQ::SaberDAQ( plrsController* ctrl) : plrsModuleDAQ( ctrl){
 
     event_counter = 0;
     total_event_number = 0;
+
+    next_addr = -1;
 }
 
 
@@ -39,6 +40,23 @@ SaberDAQ::~SaberDAQ(){
 }
 
 
+int SaberDAQ::GetNextModuleID(){
+
+    if( next_addr<0 ){
+        string next_module = GetConfigParser()->GetString("/module/"+GetModuleName()+"/next_module", "");
+            // if not found, returns default value of ""
+        if( next_module!="" ){
+            next_addr = ctrl->GetIDByName( next_module );   // nonnegative if valid
+        }
+        if( next_module=="" || next_addr<0 ){
+            Print("Next module not specified. Setting up loop-back.\n", INFO);
+            next_addr = ctrl->GetIDByName( this->GetModuleName() );
+        }
+    }
+
+    return next_addr;
+}
+
 // Establish connection with the VME crate.
 void SaberDAQ::Initialize(){
 
@@ -53,6 +71,7 @@ void SaberDAQ::Initialize(){
 
     map< string, vector<string> > connections = cparser->GetListOfParameters( "/module/daq/connection" );
     map< string, vector<string> >::iterator con_itr;
+
     for( con_itr = connections.begin(); con_itr!=connections.end(); ++con_itr){
 
         string key = con_itr->first;
@@ -200,8 +219,9 @@ void SaberDAQ::Initialize(){
             SetStatus( ERROR );
             return;
         }
+
     }
-    
+
 }
 
 
@@ -212,65 +232,67 @@ void SaberDAQ::Configure(){
     bool found = false;;
     std::map<string, VMEConnection>::const_iterator citr;
 
-
-    vector<SaberDAQHeader*> header_to_send;
-
-
-    // **************************************************************
-    //                          trigger
-    // **************************************************************
-
-    bool trig_en = cparser->GetBool("/module/daq/logic_trigger/enable", &found );
-    if( trig_en && found ){
-
-        CAENV1495Parameter param;
-        param.SetParamFromConfig( cparser );
-
-        string type = cparser->GetString("/module/daq/logic_trigger/connect_via");
-//        citr = vme_connection.find( "/"+type+"/" );
-        citr = vme_connection.find( "/module/daq/"+type+"/" );
-
-        param_trig.push_back(param);
-        v1495.push_back( CAENV1495( (citr->second).handle, param));
+   
     
-
-        // ** send configuration information to disk recorder.
-        char* p = new char[ 4*param.GetHeaderSize() ];
-        param.Serialize( p );
-
-        SaberDAQHeader* hdr = new SaberDAQHeader();
-        hdr->CopyHeader( p, 4*param.GetHeaderSize() );
-        header_to_send.push_back( hdr );
-        delete p;
-
-        Print( "Trigger configured.\n", DETAIL);
-    }
-
-
     // ***************************************************************
     //                      Random trigger
     // ***************************************************************
+    
     rand_trig = cparser->GetBool("/module/daq/periodic_trigger/enable", &found );
 
     if( rand_trig && found ){
 
         if( cparser->GetString("/module/daq/periodic_trigger/source" )=="fpga" ){
             rand_trig_via_fpga = true;
+            //header_to_send->SetRandomTriggerSource("fpga");
         }
-        else
+        else{
+            //header_to_send->SetRandomTriggerSource("software");
             rand_trig_via_fpga = false;
+        }
 
-         rand_trig_period = cparser->GetInt("/module/daq/periodic_trigger/rate", &found );
+        rand_trig_period = cparser->GetInt("/module/daq/periodic_trigger/rate", &found );
 
         if( !found ){
             Print("Cannot find sampling rate. Using default value (1 Hz).\n", ERR);
             rand_trig_period = 1000;
         }
 
-        //control->SetSamplingPeriod( rate );
+        //header_to_send->SetRandomTriggerPeriod( rand_trig_period );
+
         Print( "Periodic sampling enabled and configured.\n", DETAIL);
     }
+    
+
+    // **************************************************************
+    //                          trigger
+    // **************************************************************
+
+    CAENV1495Parameter param;
+    
+    bool trig_en = cparser->GetBool( "/module/daq/logic_trigger/enable", &found );
+
+    if( trig_en && found ){
+
+        // create and initialize trigger parameter object from configuration parser
+        //
+        param.SetParamFromConfig( cparser );
+
+        string type = cparser->GetString( "/module/daq/logic_trigger/connect_via" );
+        citr = vme_connection.find( "/module/daq/" + type + "/" );
+
+        param_trig.push_back(param);
+        v1495.push_back( CAENV1495( (citr->second).handle, param) );
+    
+    }
+    else{
+        param_trig.push_back(param);
+    }
+
+    //header_to_send->AddTriggerParameter( param );
         
+    Print( "Trigger configured.\n", DETAIL );
+
 
     // ****************************************************************
     //                      ADC
@@ -284,7 +306,6 @@ void SaberDAQ::Configure(){
         string dirname = adc_itr->first;
         if(dirname=="/module/daq/board*/")
             continue;
-
 
         CAENV1720Parameter param;
         param.SetParamFromConfig( cparser, dirname);
@@ -305,67 +326,45 @@ void SaberDAQ::Configure(){
             if( param.runmode==FIRST_TRIG_CON )
                 ext_trig_to_start = true;
 
-            char* p = new char[ 4*param.GetHeaderSize() ];
-            param.Serialize( p );
-
-            // add the board only if it is enabled
-            SaberDAQHeader* hdr = new SaberDAQHeader();
-            hdr->CopyHeader( p, 4*param.GetHeaderSize() );
-            header_to_send.push_back( hdr );
-
-            delete p;
+            //header_to_send->AddADCParameter( param );
         }
-    }
 
+    }
 
     if( v1720.size()==0 && v1495.size()==0 )
         Print( "No digitizer or trigger is enabled in the configuration file.\n", INFO);
     else
         Print( "ADC configured.\n", DETAIL);
 
-    for( int i=0; i<NBUFF; i++){
+
+    // **********************************************************************
+    //       Share the header with other modules
+    // **********************************************************************
+
+
+    SaberDAQData* header_to_send = new SaberDAQData( param_adc, param_trig[0] );
+    
+    if( rand_trig ){
+
+        if ( rand_trig_via_fpga ){
+            header_to_send->SetRandomTriggerSource("fpga");
+        }
+        else{
+            header_to_send->SetRandomTriggerSource("software");
+        }
+        header_to_send->SetRandomTriggerPeriod( rand_trig_period );
+    }
+
+    header_to_send->SetTimeStamp( ctrl->GetTimeStamp() );
+
+    PushToBuffer( GetNextModuleID(), header_to_send );
+    
+    for( int i=0; i<NBUFF-1; i++){
         int id = ctrl->GetIDByName( this->GetModuleName() );
-        PushToBuffer( id, new SaberDAQData( param_adc) );
+        PushToBuffer( id, new SaberDAQData( param_adc, param_trig[0] ) );
     }
         
     Print( "Data buffer configured.\n", DETAIL);
-
-
-    // **************************************************************
-    //               Config global header and send all
-    // **************************************************************
-
-
-    // global header begin
-
-    uint32_t glb_header[4];
-    glb_header[0] = 0xaa1234aa;
-
-    glb_header[1] = 4*sizeof( glb_header[0] );
-    for( unsigned int i=0; i<header_to_send.size(); ++i)
-        glb_header[1] += header_to_send[i]->size();
-
-    glb_header[2] = 0;
-    glb_header[3] = ctrl->GetTimeStamp();
-
-    SaberDAQHeader* glb = new SaberDAQHeader();
-    glb->CopyHeader( glb_header, 4*sizeof( glb_header[0] ) );
-    PushToBuffer( addr_nxt, glb);
-
-
-    // send ADC and Trigger header
-
-    for( unsigned int i=0; i<header_to_send.size(); ++i)
-        PushToBuffer( addr_nxt, header_to_send[i]);
-
-
-    uint32_t glb_header_cls[2];
-    glb_header_cls[0] = 0xaa1234aa;
-    glb_header_cls[1] = 2*sizeof( glb_header_cls[0]);
-
-    SaberDAQHeader* glb_cls = new SaberDAQHeader();
-    glb_cls->CopyHeader( glb_header_cls, 2*sizeof( glb_header_cls[0] ) );
-    PushToBuffer( addr_nxt, glb_cls );
 
 }
 
@@ -458,36 +457,41 @@ void SaberDAQ::Event(){
     void* vptr = 0;
     SaberDAQData* rdo = 0;
 
-
     while( vptr==0 ){
+
         vptr = PullFromBuffer();
-        if( vptr!=0 ){   // could be header instead of data
-            rdo  = reinterpret_cast<SaberDAQData*>( vptr );
-            if( rdo->IsHeader() ){
-            delete rdo;
-            vptr = 0;
-            rdo = 0;
-            }
+        
+        if( vptr!=0 ){
+            break;
         }
-        else
-            sched_yield();
+
+        sched_yield();
     }
 
     // valid rdo
     
     rdo  = reinterpret_cast<SaberDAQData*>( vptr );
 
+    rdo->SetTimeStamp( ctrl->GetTimeStamp() );
+    rdo->SetEventIndex( event_counter );
+
     for( unsigned int bd=0; bd<v1720.size(); ++bd){
+        
+        // if no event is read, raise error
         if( v1720[bd].ReadFIFO( (*rdo)[bd].GetBufferAddr(), (*rdo)[bd].bytes() )==0 ){
+            
             stringstream ss;
             ss << "Error : no event in board " << bd << "\n";
-            Print( ss.str(), ERR);
-            SetStatus(ERROR);
+            
+            Print( ss.str(), ERR );
+            
+            SetStatus( ERROR );
+            
             break;
         }
     }
 
-    PushToBuffer( addr_nxt, rdo);
+    PushToBuffer( GetNextModuleID(), rdo);
     rdo = 0;
     vptr = 0;
 
@@ -496,13 +500,16 @@ void SaberDAQ::Event(){
 
 
 void SaberDAQ::PreEvent(){
-    if( UpdateTimeSinceLastTrigger() && GetState()==RUN){
+
+    if( UpdateTimeSinceLastTrigger() && GetState()==RUN ){
+        
         if( rand_trig_via_fpga ){
             if( v1495.size()>0 )
                 v1495[0].TriggerFPGA();
         }
+        
         else{
-            for( unsigned int bd=0; bd<v1720.size(); bd++){
+            for( unsigned int bd=0; bd<v1720.size(); bd++ ){
                 v1720[bd].SWTrigger();
             }
         }
@@ -540,53 +547,32 @@ bool SaberDAQ::UpdateTimeSinceLastTrigger(){
 
 
 void SaberDAQ::PreRun(){
-
-    // *** initial header
-
-    uint32_t evt_header[4];
-    evt_header[0] = 0xee1234ee;
-    evt_header[1] = 4*sizeof(evt_header[0]);
-    evt_header[2] = 0;
-    evt_header[3] = 0;
-
-    // calculate bytes per event:
-    for( unsigned int i=0; i<v1720.size(); ++i){
-        evt_header[3] += v1720[i].GetTotalSizeInByte();
-    }
-
-    SaberDAQHeader* evt = new SaberDAQHeader();
-    evt->CopyHeader( evt_header, 4*sizeof( evt_header[0] ) );
-    PushToBuffer( addr_nxt, evt);
-
     StartDAQ();
 }
 
 
+void SaberDAQ::Run(){
 
+    while( GetState()==RUN ){
+        PreEvent();
+        Event();
+        PostEvent();
+    }
+
+}
+
+
+// PostRun, called when the entire run is finished 
+// to mark the end of the run, a special header is created and sent to other modules
+// to indicate that no further data taking should take place.
+//
 void SaberDAQ::PostRun(){
+    
+    SaberDAQData* evt = new SaberDAQData();
 
+    evt->SetTimeStamp( ctrl->GetTimeStamp() );
+    
+    PushToBuffer( GetNextModuleID(), evt);
+    
     StopDAQ();
-
-    // ****** close event header
-
-    uint32_t evt_header[2];
-    evt_header[0] = 0xee1234ee;
-    evt_header[1] = sizeof(evt_header[0])*2;
-
-    SaberDAQHeader* evt = new SaberDAQHeader();
-    evt->CopyHeader( evt_header, 2*sizeof( evt_header[0] ) );
-    PushToBuffer( addr_nxt, evt);
-
-    // ****** clode global header
-
-    uint32_t glb_header[5];
-    glb_header[0] = 0xff1234ff;
-    glb_header[1] = 5*sizeof( glb_header[0] );
-    glb_header[2] = 0;
-    glb_header[3] = ctrl->GetTimeStamp();
-    glb_header[4] = 0xff1234ff;
-
-    SaberDAQHeader* glb = new SaberDAQHeader();
-    glb->CopyHeader( glb_header, 5*sizeof( glb_header[0] ) );
-    PushToBuffer( addr_nxt, glb);
 }

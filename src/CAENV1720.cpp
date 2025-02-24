@@ -21,7 +21,7 @@ CAENV1720::CAENV1720( int32_t h, CAENV1720Parameter p): VMEBoard<CAENV1720Parame
     ConfigFPIO();
 
     WriteRegister( ACQ_CON, 0x8);   // count all triggers
-    WriteRegister(0x81a0,0x1111);   // Configures LVDS to reflect channel trigger status.
+    WriteRegister( 0x81a0, 0x1111);   // Configures LVDS to reflect channel trigger status.
 
     SetEvtNumberBLT(1);
     SWClear();
@@ -36,7 +36,7 @@ CAENV1720::~CAENV1720(){}
 
 void CAENV1720::Initialize(){
 
-    if(Running())
+    if( Running() )
         StopBoard();
 
     /* local channel settings */
@@ -59,14 +59,14 @@ void CAENV1720::Initialize(){
     /*  configure acquisition */
     SetRunMode(param.runmode);
 
-    WriteRegister(0x81a0,0x1111);
+    WriteRegister( 0x81a0, 0x1111);
         // Configures LVDS to reflect channel trigger status.
 }
 
 
 /* local channel setting */
 
-void CAENV1720::SetThreshold(int i, uint32_t _th){
+void CAENV1720::SetThreshold( int i, uint32_t _th){
     uint32_t th = _th & 0x0fff;
     WriteRegister( CHN_TRIG_THRESH + i*0x100, th);
     param.channel_param[i].threshold = th;
@@ -308,24 +308,24 @@ uint32_t CAENV1720::GetEvtSizeInByte(){
 }
 
 
-void CAENV1720::EnableChannel(int i, bool e){
-    if(Running()){
+void CAENV1720::EnableChannel( int i, bool e){
+    if( Running() ){
         std::cerr<<"WARNING: V1720::EnableChannel Attempting to enable a channel while running."<<std::endl;
         StopBoard();
     }
-    SetBit(&param.ch_enable_mask, e?1:0, i, i);
+    SetBit( &param.ch_enable_mask, e ? 1:0, i, i);
     EnableChannels();
 }
 
 
-bool CAENV1720::ChannelEnabled(int ii){
+bool CAENV1720::ChannelEnabled( int ii){
     int i = ii%Nchan;
     uint32_t data = ReadRegister(CH_ENABLE_MASK);
-    return (GetBit(data,i,i)!=0)?true:false;
+    return ( GetBit(data,i,i)!=0 ) ? true:false;
 }
 
 
-void CAENV1720::SetChannelEnableMask(uint32_t mask){
+void CAENV1720::SetChannelEnableMask( uint32_t mask){
     param.ch_enable_mask = mask&0xff;
     EnableChannels();
 }
@@ -342,14 +342,14 @@ int CAENV1720::GetNChannelEnabled(){
 }
 
 
-uint32_t CAENV1720::ReadFIFO(uint32_t* bytes, uint32_t bytes_to_read){
+uint32_t CAENV1720::ReadFIFO( uint32_t* bytes, uint32_t bytes_to_read){
 
     if(!EventReady())
         return 0;
     uint32_t trd = GetTotalSizeInByte();
 
     if( bytes_to_read!=trd )
-        std::cerr<<"Warning: V1720 ReadFIFO user attempting to read "<<bytes_to_read<<" while each event has "<<trd<<" bytes.\n";
+        std::cerr << "Warning: V1720 ReadFIFO user attempting to read " << bytes_to_read << " while each event has " << trd << " bytes.\n";
 
     /************************ first read header *****************************************************/
     //
@@ -373,8 +373,8 @@ uint32_t CAENV1720::ReadFIFO(uint32_t* bytes, uint32_t bytes_to_read){
 
 void CAENV1720::SetRunMode(V1720_RUNMODE rm){
     uint32_t data = 0x08;   // by default count all triggers
-    SetBit(&data,rm,0,1);
-    WriteRegister(ACQ_CON,data);
+    SetBit( &data, rm, 0, 1);
+    WriteRegister( ACQ_CON, data);
     param.runmode = rm;
 }
 
@@ -390,18 +390,18 @@ void CAENV1720::StartBoard(){
 
     //std::cout<<" Starting board, available events: "<<GetNEvtStored()<<" VME status: "<<std::hex<<ReadRegister(0xEF04)<<std::endl;
 
-    uint32_t data = ReadRegister(ACQ_CON);
-    SetBit( &data, (unsigned int)(param.runmode), 0, 1);
-    WriteRegister( ACQ_CON, data);
+    uint32_t data = ReadRegister( ACQ_CON );
+    SetBit( &data, (unsigned int)(param.runmode), 0, 1 );
+    WriteRegister( ACQ_CON, data );
 
-    SetBit(&data,1,2,2);
-    WriteRegister(ACQ_CON,data);
+    SetBit( &data, 1, 2, 2 );
+    WriteRegister( ACQ_CON, data );
 
 }
 
 
-void CAENV1720::StartBoard(V1720_RUNMODE rm){
-    SetRunMode(rm);
+void CAENV1720::StartBoard( V1720_RUNMODE rm ){
+    SetRunMode( rm );
     StartBoard();
 }
 
@@ -417,40 +417,40 @@ void CAENV1720::StopBoard(){
 
 
 bool CAENV1720::Running(){
-    return GetBit(ReadRegister(ACQ_STATUS),2,2)==1?true:false;
+    return GetBit( ReadRegister(ACQ_STATUS), 2, 2 )==1 ? true:false;
 }
 
 
 bool CAENV1720::BoardReady(){
-    return GetBit(ReadRegister(ACQ_STATUS),8,8)==1?true:false;
+    return GetBit( ReadRegister(ACQ_STATUS), 8, 8 )==1 ? true:false;
 }
 
 
 bool CAENV1720::EventReady(){
-    return GetBit(ReadRegister(ACQ_STATUS),3,3)==1?true:false;
+    return GetBit(ReadRegister(ACQ_STATUS), 3, 3 )==1 ? true:false;
 }
 
 
 bool CAENV1720::EventFull(){
-    return GetBit(ReadRegister(ACQ_STATUS),4,4)==1?true:false;
+    return GetBit(ReadRegister(ACQ_STATUS), 4, 4 )==1 ? true:false;
 }
 
 
-void CAENV1720::SetEvtNumberBLT(uint32_t s){
-    WriteRegister(BLT_EVT_NUM,s);
+void CAENV1720::SetEvtNumberBLT( uint32_t s ){
+    WriteRegister( BLT_EVT_NUM, s );
 }
 
 
 /* reset/reinitialization */
 
 void CAENV1720::Reset(){
-    uint32_t d = 0x01;  WriteRegister(SOFT_RESET,d);
+    uint32_t d = 0x01;  WriteRegister( SOFT_RESET, d);
     while(!BoardReady()){;}
 }
 
 
 void CAENV1720::SWClear(){
-    uint32_t d = 0x01;  WriteRegister(SOFT_CLEAR,d);
+    uint32_t d = 0x01;  WriteRegister( SOFT_CLEAR, d);
     while(!BoardReady()){;}
 }
 
@@ -458,7 +458,7 @@ void CAENV1720::SWClear(){
 /* acquisition trigger source */
 
 void CAENV1720::SWTrigger(){
-    WriteRegister(SOFT_TRIGGER,0x1);
+    WriteRegister( SOFT_TRIGGER, 0x1);
 }
 
 
