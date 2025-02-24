@@ -232,15 +232,15 @@ def main():
                     plt.plot( 0.004 * np.arange( 0, len(data), 1), data, label = file.split('/')[-1]+', channel {} event {}'.format( chan, event ) )
 
                     if threshold_cur not in threshold_plotted_list and args.baseline == False:
-                        plt.plot( 0.004 * np.arange( 0, len(data), 1), threshold_cur * np.ones( len(data) ), 
-                                 '--', label='threshold ({})'.format( file.split('/')[-1])  )
                         threshold_plotted_list.append( threshold_cur )
 
                     minimum = min( np.min(data), minimum)
                     maximum = max( np.max(data), maximum)
     
+            for tc in threshold_plotted_list:
+                plt.plot( 0.004 * np.arange( 0, len(data), 1), tc * np.ones( len(data) ),  ':', label='threshold ({})'.format( file.split('/')[-1])  )
             delta = maximum - minimum
-            plt.plot( 0.004 * pre_trig_window * np.ones(2), [minimum - .1*delta, maximum + 0.1*delta], '--', label='trigger point'  )
+            plt.plot( 0.004 * pre_trig_window * np.ones(2), [minimum - .1*delta, maximum + 0.1*delta], ':', label='trigger ({})'.format( file.split('/')[-1]) )
     
         else:
             
