@@ -150,6 +150,13 @@ def main():
                         action = 'store_true',
                         help = 'Computes average pulse shape by averaging all waveforms in the file or specified via --event.' )
     
+    parser.add_argument( '-c', '--channel', 
+                        metavar = 'Channel ID',
+                        nargs = '*',
+                        type = int,
+                        default = [0],
+                        help = 'Index of channel(s) to be displayed. Default is 0 only.' )
+
     parser.add_argument( '-e', '--event', 
                         metavar = 'event ID',
                         nargs = '*',
@@ -169,7 +176,8 @@ def main():
         # iterate through each file
         for file in args.info:
             display_attributes( file, args.verbose )
-            exit(0)
+        
+        exit(0)
     
     ######################
     # preparing the figure
@@ -182,7 +190,7 @@ def main():
     #####################################
 
     pre_trig_window = 0
-    threshold = 0
+    threshold_cur = 0
     threshold_prev = 0
         
     for file in args.file:
@@ -203,29 +211,33 @@ def main():
 
             for event in args.event:
 
-                data = get_waveform( file, event )
-                
-                ###################################################
-                # if argument is specified, subtract baseline first
-                ###################################################
-                
-                if args.baseline == True :
-                    avg, _ = baseline(data, pre_trig_window)
-                    data = ( avg - data )
+                for chan in args.channel:
 
-                #################
-                # making the plot
-                #################
+                    threshold_cur = threshold[chan]
 
-                plt.plot( 0.004 * np.arange( 0, len(data), 1), data, label = file.split('/')[-1]+', event {}'.format( event ) )
+                    data = get_waveform( file, event, chan)
+                    
+                    ###################################################
+                    # if argument is specified, subtract baseline first
+                    ###################################################
+                    
+                    if args.baseline == True :
+                        avg, _ = baseline(data, pre_trig_window)
+                        data = ( avg - data )
 
-                if threshold_prev != threshold and args.baseline == False:
-                    plt.plot( 0.004 * np.arange( 0, len(data), 1), threshold * np.ones( len(data) ), 
-                             '--', label='threshold ({})'.format( file.split('/')[-1])  )
-                    threshold_prev = threshold
+                    #################
+                    # making the plot
+                    #################
 
-                minimum = min( np.min(data), minimum)
-                maximum = max( np.max(data), maximum)
+                    plt.plot( 0.004 * np.arange( 0, len(data), 1), data, label = file.split('/')[-1]+', channel {} event {}'.format( chan, event ) )
+
+                    if threshold_prev != threshold_cur and args.baseline == False:
+                        plt.plot( 0.004 * np.arange( 0, len(data), 1), threshold_cur * np.ones( len(data) ), 
+                                 '--', label='threshold ({})'.format( file.split('/')[-1])  )
+                        threshold_prev = threshold_cur
+
+                    minimum = min( np.min(data), minimum)
+                    maximum = max( np.max(data), maximum)
     
             delta = maximum - minimum
             plt.plot( 0.004 * pre_trig_window * np.ones(2), [minimum - .1*delta, maximum + 0.1*delta], '--', label='trigger point'  )
