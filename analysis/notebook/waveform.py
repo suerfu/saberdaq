@@ -191,7 +191,7 @@ def main():
 
     pre_trig_window = 0
     threshold_cur = 0
-    threshold_prev = 0
+    threshold_plotted_list = []
         
     for file in args.file:
         
@@ -231,10 +231,10 @@ def main():
 
                     plt.plot( 0.004 * np.arange( 0, len(data), 1), data, label = file.split('/')[-1]+', channel {} event {}'.format( chan, event ) )
 
-                    if threshold_prev != threshold_cur and args.baseline == False:
+                    if threshold_cur not in threshold_plotted_list and args.baseline == False:
                         plt.plot( 0.004 * np.arange( 0, len(data), 1), threshold_cur * np.ones( len(data) ), 
                                  '--', label='threshold ({})'.format( file.split('/')[-1])  )
-                        threshold_prev = threshold_cur
+                        threshold_plotted_list.append( threshold_cur )
 
                     minimum = min( np.min(data), minimum)
                     maximum = max( np.max(data), maximum)
