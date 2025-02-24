@@ -154,7 +154,7 @@ def main():
                         action = 'store_true',
                         help = 'Computes FFT of the waveform. In this mode, --event is used to specify number of events to average.' )
     
-     parser.add_argument( '-c', '--channel', 
+    parser.add_argument( '-c', '--channel', 
                         metavar = 'Channel ID',
                         nargs = '*',
                         type = int,
