@@ -150,7 +150,11 @@ def main():
                         action = 'store_true',
                         help = 'Computes average pulse shape by averaging all waveforms in the file or specified via --event.' )
     
-    parser.add_argument( '-c', '--channel', 
+    parser.add_argument( '--fft', 
+                        action = 'store_true',
+                        help = 'Computes FFT of the waveform. In this mode, --event is used to specify number of events to average.' )
+    
+     parser.add_argument( '-c', '--channel', 
                         metavar = 'Channel ID',
                         nargs = '*',
                         type = int,
@@ -229,7 +233,13 @@ def main():
                     # making the plot
                     #################
 
-                    plt.plot( 0.004 * np.arange( 0, len(data), 1), data, label = file.split('/')[-1]+', channel {} event {}'.format( chan, event ) )
+                    if args.fft == False :
+                        plt.plot( 0.004 * np.arange( 0, len(data), 1), data, label = file.split('/')[-1]+', channel {} event {}'.format( chan, event ) )
+
+                    else :
+                        data_fft = np.fft.rfft( data )
+                        freq = np.fft.rfftfreq( len(data), 0.004 )
+                        data_fft /= (data_fft[1] - data_fft[0]) * len( data )
 
                     if threshold_cur not in threshold_plotted_list and args.baseline == False:
                         threshold_plotted_list.append( threshold_cur )
@@ -239,6 +249,7 @@ def main():
     
             for tc in threshold_plotted_list:
                 plt.plot( 0.004 * np.arange( 0, len(data), 1), tc * np.ones( len(data) ),  ':', label='threshold ({})'.format( file.split('/')[-1])  )
+            
             delta = maximum - minimum
             plt.plot( 0.004 * pre_trig_window * np.ones(2), [minimum - .1*delta, maximum + 0.1*delta], ':', label='trigger ({})'.format( file.split('/')[-1]) )
     
@@ -246,7 +257,7 @@ def main():
             
             nb_events = 0
             
-            Sum = 0            
+            Sum = 0 
             
             with h5.File( file, 'r') as f:
                 
@@ -267,13 +278,25 @@ def main():
 
                     # always subtract baseline
                     avg, _ = baseline(data, pre_trig_window)
-                    Sum += ( avg - data )
+
+                    if args.fft == False :
+                        Sum += ( avg - data )
+
+                    else : 
+                        data = avg - data
+                        data_fft = np.fft.rfft( data )
+                        freq = np.fft.rfftfreq( len(data), 0.004 )
+                        data_fft /= ( freq[1] - freq[0] ) * len(data)
+                        Sum += data_fft
 
                 print()
 
-            Sum /= np.max(Sum)
+            if args.fft == False:
+                Sum /= np.max(Sum)
                     # normalize such that highest sample is 1.
-            
+            else:
+                Sum /= nSum
+
             plt.plot( 0.004 * np.arange( 0, len(Sum), 1), Sum, label = file.split('/')[-1] )
     
     plt.xlabel('Time [us]')
