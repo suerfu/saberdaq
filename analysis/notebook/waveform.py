@@ -291,9 +291,11 @@ def main():
                 if nSum == 0:
                     nSum = nb_events
 
+                nSum = min(nb_events, nSum )
+
                 # iterate over the required number of events and compute Sum
                 #
-                for event in range( 0, min(nb_events, nSum ) ):
+                for event in range( 0, nSum):
 
                     if event%100 == 0:
                         print('Processing event {}'.format(event), end='\r' )
