@@ -215,9 +215,14 @@ def main():
 
             for event in args.event:
 
+                # for each event, plot traces for all channels specified.
+
                 for chan in args.channel:
 
-                    threshold_cur = threshold[chan]
+                    if isinstance( chan, int):
+                        threshold_cur = threshold
+                    else:
+                        threshold_cur = threshold[chan]
 
                     data = get_waveform( file, event, chan)
                     
@@ -233,76 +238,106 @@ def main():
                     # making the plot
                     #################
 
+                    # if fft option is not specified, plot directly the spectrum
+                    #
                     if args.fft == False :
                         plt.plot( 0.004 * np.arange( 0, len(data), 1), data, label = file.split('/')[-1]+', channel {} event {}'.format( chan, event ) )
+                    
+                        # in the final plot, threshold will be marked, so now append the threshold onto the list (should be a unique set)
+                        #
+                        if threshold_cur not in threshold_plotted_list and args.baseline == False:
+                            threshold_plotted_list.append( threshold_cur )
 
+                    # if fft option is specified, first take the Fourier transform and then plot the amplitude of the transform.
+                    #
                     else :
                         data_fft = np.fft.rfft( data )
                         freq = np.fft.rfftfreq( len(data), 0.004 )
                         data_fft /= (data_fft[1] - data_fft[0]) * len( data )
+                        
+                        plt.plot( freq, np.abs(data_fft), label = file.split('/')[-1]+', channel {} event {}'.format( chan, event ) )
 
-                    if threshold_cur not in threshold_plotted_list and args.baseline == False:
-                        threshold_plotted_list.append( threshold_cur )
 
                     minimum = min( np.min(data), minimum)
                     maximum = max( np.max(data), maximum)
     
-            for tc in threshold_plotted_list:
-                plt.plot( 0.004 * np.arange( 0, len(data), 1), tc * np.ones( len(data) ),  ':', label='threshold ({})'.format( file.split('/')[-1])  )
+            # if fft option is not enabled, plot the trigger points of each trace and the portion of pre-trigger window
+            # this is only true for waveform mode, not fft.
+            #
+            if args.fft == False :
             
-            delta = maximum - minimum
-            plt.plot( 0.004 * pre_trig_window * np.ones(2), [minimum - .1*delta, maximum + 0.1*delta], ':', label='trigger ({})'.format( file.split('/')[-1]) )
+                for tc in threshold_plotted_list:
+                    plt.plot( 0.004 * np.arange( 0, len(data), 1), tc * np.ones( len(data) ),  ':', label='threshold ({})'.format( file.split('/')[-1])  )
+            
+                delta = maximum - minimum
+                plt.plot( 0.004 * pre_trig_window * np.ones(2), [minimum - .1*delta, maximum + 0.1*delta], ':', label='trigger ({})'.format( file.split('/')[-1]) )
     
         else:
             
             nb_events = 0
-            
+                # number of events to read
             Sum = 0 
+                # the actual sum.
             
             with h5.File( file, 'r') as f:
                 
                 nb_events = f['adc_0'].attrs['nb_events']
-            
                 nSum = args.event[0]
-                    # --event argument will be number of events to sum if in --average/--sum mode
-                    # if it is not specified, then all events will be processed.
+
+                # --event argument will be number of events to sum if in --average/--sum mode
+                # if it is not specified, then all events will be processed.
                 if nSum == 0:
                     nSum = nb_events
 
+                # iterate over the required number of events and compute Sum
+                #
                 for event in range( 0, min(nb_events, nSum ) ):
 
                     if event%1000 == 0:
                         print('Processing event {}'.format(event), end='\r' )
 
                     data = get_waveform( file, event )
+                        # channel should be added here!
 
-                    # always subtract baseline
+                    # in the sum mode always subtract baseline
                     avg, _ = baseline(data, pre_trig_window)
 
+                    # if fft is not required, directly average the waveform
+                    #
                     if args.fft == False :
                         Sum += ( avg - data )
 
+                    # if sum and fft are enabled simultaneously, one must compute fft first and then sum and average
                     else : 
                         data = avg - data
                         data_fft = np.fft.rfft( data )
                         freq = np.fft.rfftfreq( len(data), 0.004 )
                         data_fft /= ( freq[1] - freq[0] ) * len(data)
-                        Sum += data_fft
+                        Sum += np.abs(data_fft)
 
                 print()
 
             if args.fft == False:
                 Sum /= np.max(Sum)
                     # normalize such that highest sample is 1.
+                plt.plot( 0.004 * np.arange( 0, len(Sum), 1), np.abs(Sum), label = file.split('/')[-1] )
             else:
                 Sum /= nSum
+                    # normalize by averaging
+                plt.plot( freq, np.abs(Sum), label = file.split('/')[-1] )
+    
+    if args.fft == False:
+        
+        plt.xlabel('Time [us]')
+        plt.ylabel('ADC Count [a.u.]')
 
-            plt.plot( 0.004 * np.arange( 0, len(Sum), 1), Sum, label = file.split('/')[-1] )
+        if args.sum == True:
+            plt.yscale('log')
     
-    plt.xlabel('Time [us]')
-    
-    plt.ylabel('ADC Count [a.u.]')
-    plt.yscale('log')
+    else:
+        plt.xlabel('Frequency [MHz]')
+        plt.ylabel('Power [a.u.]')
+        plt.yscale('log')
     
     plt.legend()
     plt.show()
