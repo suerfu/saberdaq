@@ -280,6 +280,8 @@ def main():
                 # the actual sum.
             
             with h5.File( file, 'r') as f:
+
+                print('Processing', f)
                 
                 nb_events = f['adc_0'].attrs['nb_events']
                 nSum = args.event[0]
@@ -293,7 +295,7 @@ def main():
                 #
                 for event in range( 0, min(nb_events, nSum ) ):
 
-                    if event%1000 == 0:
+                    if event%100 == 0:
                         print('Processing event {}'.format(event), end='\r' )
 
                     data = get_waveform( file, event )
@@ -320,11 +322,11 @@ def main():
             if args.fft == False:
                 Sum /= np.max(Sum)
                     # normalize such that highest sample is 1.
-                plt.plot( 0.004 * np.arange( 0, len(Sum), 1), np.abs(Sum), label = file.split('/')[-1] )
+                plt.plot( 0.004 * np.arange( 0, len(Sum), 1), Sum, label = file.split('/')[-1] )
             else:
                 Sum /= nSum
                     # normalize by averaging
-                plt.plot( freq, np.abs(Sum), label = file.split('/')[-1] )
+                plt.plot( freq, Sum, label = file.split('/')[-1] )
     
     if args.fft == False:
         

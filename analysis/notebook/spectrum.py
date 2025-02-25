@@ -14,12 +14,14 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 
 # Some global settings for plotting
+#
 fontsize = 12
 textsize = 10
 linewidth = 1.5
 labelsize = 10
 
 # default figure size, golden ratio!
+#
 figsize = (5.2, 5.2/1.618)
 figdpi = 300
 gridwidth = 0.3
@@ -44,13 +46,20 @@ def get_waveform( filename, index = 0, channel = 0 ) :
     data = None
     file = None
     
+    # check if the input is a name to hdf5 file, or an hdf5 file object
+    # handling object directly is more efficient
+    # since repeated opening and closing are not required.
+    #
     if isinstance( filename, str):
         file = h5.File( filename, 'r' )
     else:
         file = filename
             
-    max_evt = file['/adc_0/'].attrs['nb_events']        
+    max_evt = file['/adc_0/'].attrs['nb_events']
+        # number of events in the file
         
+    # raise error if trying to access beyond the available number of events
+    #
     if index > file['/adc_0/'].attrs['nb_events'] :
         file.close()
         raise Exception('Trying to access event index {} beyond number of events {}'.format( index, max_evt) )
@@ -150,9 +159,13 @@ def main():
             nb_events = file['adc_0'].attrs['nb_events']
             pre_trig_window = file['adc_0'].attrs['pre_trigger_sample']
 
+            # get number of events, which is the smaller of that specified or that available
+            #
             if args.event > 0:
                 nb_events = min( args.event, nb_events)
 
+            # loop over the events to get statistics
+            #
             for i in range( 0, nb_events):
 
                 if( i%1000==0 ):
@@ -161,10 +174,13 @@ def main():
                 data = get_waveform( filename, i)
 
                 baseL,baseStd = baseline( data, pre_trig_window)
+                    # average and standard deviation of baseline
+
+                # take the start as when the pulse first crosses 5 sigma deviation
+                # start of integral is 4 samples (16 ns) prior to this point
+                #
                 start = np.where( data[:pre_trig_window] > -5 * baseStd)[0][-1]
                 startIntegral = start - 4
-                    # take the start as when the pulse first crosses 5 sigma deviation
-                    # start of integral is 4 samples (16 ns) prior to this point
 
                 data = data - baseL
 
@@ -196,6 +212,9 @@ def main():
 # Height_bgnd=np.array(Height)
 # MeanTime_bgnd=np.array(MeanTime)
 
+
+    # make the plot of pulse height spectrum
+    #
     title = ['Pulse Height [a.u.]'] #, ['Pulse Integral [a.u.]'] #, ['Pulse Height','Integral'] ]:
     
     fig, ax = plt.subplots(figsize=(10, 6))
@@ -209,8 +228,8 @@ def main():
     plt.xlabel( title[0] )
     plt.yscale( 'log' )
     
-    
-    
+    # make the plot of pulse integral spectrum
+    #
     title = ['Pulse Integral [a.u.]'] #, ['Pulse Height','Integral'] ]:
     
     fig, ax = plt.subplots(figsize=(10, 6))
@@ -224,12 +243,8 @@ def main():
     plt.xlabel( title[0] )
     plt.yscale( 'log' )
     
-    plt.legend()
-    plt.show()
-    
-    
-    
-    
+    # make pulse height v.s. pulse integral (energy) 2D spectra
+    #
     title = [ 'Pulse Height [a.u]', 'Pulse Integral [a.u.]' ]
     
     fig, ax2 = plt.subplots(figsize=(10, 6))
@@ -247,7 +262,6 @@ def main():
     
     plt.xlabel( title[0] )
     plt.ylabel( title[1] )
-#     plt.yscale( 'log' )
     
     plt.legend()
     plt.show()
