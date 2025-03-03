@@ -1,6 +1,8 @@
 #!/bin/env python3
 
+################################################################
 # Displays pulse spectrum and other information in the hdf5 file
+################################################################
 
 import sys
 import argparse
@@ -13,8 +15,10 @@ import matplotlib.pyplot as plt
 
 from matplotlib.colors import LogNorm
 
+###################################
 # Some global settings for plotting
-#
+###################################
+
 fontsize = 12
 textsize = 10
 linewidth = 1.5
@@ -108,30 +112,27 @@ def main():
     parser = argparse.ArgumentParser( prog='spectrum', 
                                      description='Displays saberdaq spectrum by analyzing HDF5 files', 
                                      epilog='')
-
     parser.add_argument( '-m', '--mode',
                         metavar = 'mode',
                         nargs = '*',
                         choices = [ 'ht', 'e', 'ht_e' ],
                         help = 'Displays information about the HDF5 files. No other actions will be taken.' )
-    
     parser.add_argument( '-v', '--verbose', 
                         action = 'store_true',
                         help = 'Verbosity: displays more detailed information as procesing goes on.' )
-        
     parser.add_argument( '-f', '--file', 
                         metavar = 'filename(s)',
                         nargs = '*',
                         help = 'HDF5 files to read and display event(s).' )
-    
-#     parser.add_argument( '-b', '--baseline', 
-#                         action = 'store_true',
-#                         help = 'Subtracts baseline. Baseline estimated as average of waveform in the pre-trigger window.' )
-    
+    parser.add_argument( '--pyroot',
+                        nargs = 1,
+                        help = 'Generates a ROOT file from the input raw files.' )
+    parser.add_argument( '--no-plot', 
+                        action = 'store_true',
+                        help = 'Do not make any plots (useful if one only wants ROOT output).' )
     parser.add_argument( '-s', '--sum', 
                         action = 'store_true',
                         help = 'Processes the files by merging them together as a single run (default is treat them independently).' )
-    
     parser.add_argument( '-e', '--event', 
                         metavar = 'event ID',
                         nargs = '?',
@@ -145,8 +146,43 @@ def main():
     energy = []
         # variable used to hold result of computation as a tuple
     
+    ROOTFile = None
+        # ROOT output file
+        # default is None, but if pyROOT is given in the argument, and pyROOT is installed
+        # this variable will be a ROOT TFile object
+
+    ##############################
+    # Check if pyroot is installed
+    ##############################
+
+    if len( args.pyroot ) > 0 :
+        
+        try:
+            import ROOT
+            from array import array
+
+        except ImportError:
+            print("ROOT output requested but pyROOT is NOT installed. Aborting...")
+            exit(-1)
+
+        treeEventID = array( 'l', [0])
+        treeHeight  = array( 'i', [0])
+        treeEnergy  = array( 'f', [0.0]) 
+
+        ROOTFile = ROOT.TFile( args.pyroot[0], "recreate")
+        tree = ROOT.TTree("events", "event tree storing reduced quantities")
+    
+        #treeEventID = ROOT.std.vector('long')()
+        #treeHeight = ROOT.std.vector('int')()
+        #treeEnergy = ROOT.std.vector('float')()
+
+        tree.Branch("eventID", treeEventID, "eventID/L" )
+        tree.Branch("height",  treeHeight, "height/I" )
+        tree.Branch("energy", treeEnergy, "energy/F" )
+    
+
     ############################################################################################
-    # first determine what quantities to store in the tuple, and then process and fill the tuple
+    # Determine what quantities to store in the tuple, and then process and fill the tuple
     ############################################################################################
     
     for filename in args.file:
@@ -162,6 +198,7 @@ def main():
             # get number of events, which is the smaller of that specified or that available
             #
             if args.event > 0:
+
                 nb_events = min( args.event, nb_events)
 
             # loop over the events to get statistics
@@ -184,34 +221,40 @@ def main():
 
                 data = data - baseL
 
-                height.append( -np.min( data ) )
-                energy.append( -integral( data, startIntegral ) )
-            
+                height_tmp = -np.min( data )
+                energy_tmp = -integral( data, startIntegral )
+
+                if args.no_plot is False:
+
+                    height.append( height_tmp )
+                    energy.append( energy_tmp )
+
+                if ROOTFile is not None:
+
+                    # Fill ROOT tree branches
+                    #
+#                    treeEventID.clear()
+#                    treeHeight.clear()
+#                    treeEnergy.clear()
+
+                    treeEventID[0] = i
+                    treeHeight[0] = int(height_tmp)
+                    treeEnergy[0] = energy_tmp
+
+#                    treeEventID.push_back( i )
+#                    treeHeight.push_back( int(height_tmp) )
+#                    treeEnergy.push_back( energy_tmp )
+
+                    tree.Fill()
+
             print()
-#             result.append( [height, energy] )
-            
 
+    if ROOTFile is not None:
+        ROOTFile.Write()
+        ROOTFile.Close()
 
-#     ftrig = PSDTrig(data, ArgMin,pre_trig_window,Start )
-#     ftrig20 = PSDTrig20(data, ArgMin,pre_trig_window,Start )
-#     AverageMeanT= AWMT( data, Start )
-
-
-#     #if f>1.5:
-#     #    print(i)
-
-#     # if a<0 and f<1.25 and f>0.75:
-#     Int.append( a )
-#     psdtrig.append( ftrig )
-#     psdtrig20.append( ftrig20 )
-#     MeanTime.append(float(AverageMeanT))
-#     # ShowEvent(i)
-# Area_bgnd = np.array(Int)
-# PSD_bgndTrig  = np.array(psdtrig)
-# PSD_bgndTrig20  = np.array(psdtrig20)
-# Height_bgnd=np.array(Height)
-# MeanTime_bgnd=np.array(MeanTime)
-
+    if args.no_plot is True:
+        exit()
 
     # make the plot of pulse height spectrum
     #
