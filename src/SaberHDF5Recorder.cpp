@@ -212,7 +212,7 @@ string SaberHDF5Recorder::GetFileName(){
 
 void SaberHDF5Recorder::CloseOutput( SaberDAQData* data ){
 
-    Print( "Closing output HDF5 file...", INFO );
+    Print( "Closing output HDF5 file...\n", INFO );
     
     h5man->AddAttribute( "/", "timestamp_end", data->GetTimeStamp() );
    
@@ -222,7 +222,7 @@ void SaberHDF5Recorder::CloseOutput( SaberDAQData* data ){
         h5man->AddAttribute( ss.str(), "nb_events", evt_counter );
     
         stringstream ss2;
-        ss2 << evt_counter << "events recorded.\n";
+        ss2 << evt_counter << " events recorded.\n";
         Print( ss2.str(), INFO );
     }
 
