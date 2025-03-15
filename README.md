@@ -9,8 +9,9 @@ NOTE: if this program is used in your experiment, please also cite the following
 saberdaq package depends on:
 - [polaris](https://github.com/suerfu/polaris)
 - [CAENVMElib](https://www.caen.it/download/?filter=CAENVMELib%20Library)
-- [H5CPP]()
- - make sure to add option `-DHDF5_BUILD_CPP_LIB:BOOL=ON` when running `cmake` in build directory.
+- [H5CPP](https://www.hdfgroup.org/download-hdf5/source-code/)
+  - it is recommended to build HDF5 from source
+  - in the building process, make sure to add option `-DHDF5_BUILD_CPP_LIB:BOOL=ON` to enable C++ support
 
 ## Format of output HDF5 file
 
