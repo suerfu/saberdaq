@@ -251,14 +251,14 @@ void SaberDAQ::Configure(){
             rand_trig_via_fpga = false;
         }
 
-        rand_trig_period = cparser->GetInt("/module/daq/periodic_trigger/rate", &found );
+        rand_trig_period_ms = cparser->GetInt("/module/daq/periodic_trigger/period", &found );
 
         if( !found ){
-            Print("Cannot find sampling rate. Using default value (1 Hz).\n", ERR);
-            rand_trig_period = 1000;
+            Print("Cannot find sampling period. Using default value (1 ms).\n", ERR);
+            rand_trig_period_ms = 1000;
         }
 
-        //header_to_send->SetRandomTriggerPeriod( rand_trig_period );
+        //header_to_send->SetRandomTriggerPeriod( rand_trig_period_ms );
 
         Print( "Periodic sampling enabled and configured.\n", DETAIL);
     }
@@ -352,7 +352,7 @@ void SaberDAQ::Configure(){
         else{
             header_to_send->SetRandomTriggerSource("software");
         }
-        header_to_send->SetRandomTriggerPeriod( rand_trig_period );
+        header_to_send->SetRandomTriggerPeriod( rand_trig_period_ms );
     }
 
     header_to_send->SetTimeStamp( ctrl->GetTimeStamp() );
@@ -443,7 +443,7 @@ void SaberDAQ::StopDAQ(){
 
 void SaberDAQ::Event(){
 
-    if( GetState()!=RUN || event_counter>=total_event_number )
+    if( GetState()!=RUN || event_counter >= total_event_number )
         return;
 
     // if there is a board that has no event.
@@ -534,9 +534,10 @@ bool SaberDAQ::UpdateTimeSinceLastTrigger(){
 
     trig_time_cur = std::chrono::steady_clock::now();
 
-    float diff = std::chrono::duration_cast< std::chrono::microseconds > ( trig_time_cur - trig_time_prev).count();
+    float diff = std::chrono::duration_cast< std::chrono::milliseconds > ( trig_time_cur - trig_time_prev).count();
+        // time lapsed since last trigger in milliseconds
 
-    if( diff > rand_trig_period ){
+    if( diff > rand_trig_period_ms ){
         trig_time_prev = trig_time_cur;
         return true;
     }
