@@ -262,7 +262,7 @@ void SaberHDF5Recorder::ConfigureOutput( SaberDAQData* data ){
     
     nb_adc_board = adcparam.size() ;
 
-    h5man->AddAttribute( "/", "nb_adc_board", adcparam.size() );
+    h5man->AddAttribute( "/", "nb_adc_board", (uint32_t) adcparam.size() );
 
     for( unsigned int i=0; i<adcparam.size(); i++){
         adcparam[i].SetBoardIndex( i );

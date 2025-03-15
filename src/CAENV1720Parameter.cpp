@@ -605,7 +605,7 @@ void CAENV1720Parameter::ExportHDF5( H5FileManager* h5man){
     //h5man->AddAttribute( "/"+board_name, "enable", (unsigned int)(GetNChannelEnabled()>0) );
     h5man->AddAttribute( "/"+board_name, "version", string("1.0.0") );
     h5man->AddAttribute( "/"+board_name, "model", string("caen_v1720") );
-    h5man->AddAttribute( "/"+board_name, "sample_rate", float(250e6) );
+    h5man->AddAttribute( "/"+board_name, "sampling_rate", float(250e6) );
     
     h5man->AddAttribute( "/"+board_name, "vme_address", GetBaseAddr() );
 
