@@ -105,7 +105,7 @@ private:
     bool rand_trig;
         //!< Flag for enabling/disabling random sampling/trigger
     
-    float rand_trig_period;
+    float rand_trig_period_ms;
         //!< Flag for enabling/disabling random sampling/trigger
     
     bool rand_trig_via_fpga;
