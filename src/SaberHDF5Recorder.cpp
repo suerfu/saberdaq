@@ -244,12 +244,9 @@ void SaberHDF5Recorder::ConfigureOutput( SaberDAQData* data ){
     //          Global header 
     // ******************************
     
-    h5man->AddAttribute( "/", "version", string("1.0.0") );
+    h5man->AddAttribute( "/", "version", string("2.0.0") );
     h5man->AddAttribute( "/", "comment", rawconfig->GetString("/cmdl/comment") );
-
-    std::ostringstream ostr;
-    rawconfig->Print( ostr );
-    h5man->AddAttribute( "/", "config", ostr.str() );
+    h5man->AddAttribute<string>( "/", "config", rawconfig->GetConfigFileTxt() );
 
     h5man->AddAttribute( "/", "timestamp", data->GetTimeStamp() );
     
@@ -325,12 +322,14 @@ void SaberHDF5Recorder::WriteToOutput( SaberDAQData* data){
         // write other attributes
         //
         uint32_t ttt = (*data)[i].GetTimeTag();
+        uint32_t timestamp = data->GetTimeStamp();
         uint64_t index = evt_counter;
         uint64_t eventID = (*data)[i].GetEventID();
         
         h5man->AddAttribute( evtname.str(), "index", index);
         h5man->AddAttribute( evtname.str(), "eventID", eventID);
         h5man->AddAttribute( evtname.str(), "trigger_time_tag", ttt);
+        h5man->AddAttribute( evtname.str(), "timestamp", timestamp);
     }
 
 }

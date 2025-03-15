@@ -27,8 +27,8 @@ OBJ_FILES = $(patsubst %.cpp, %.o, $(CPP_FILES))
 CFLAGS = -Wall -std=c++0x -fPIC -Ianalysis/include -Iinclude -Ih5manager/include
 
 # polaris flags and linker
-CFLAGS += -I/usr/include/polaris
-LDFLAGS = -L/usr/lib -lpolaris
+CFLAGS += -I/usr/local/include/polaris
+LDFLAGS = -L/usr/local/lib -lpolaris
 
 
 # CAEN libraries

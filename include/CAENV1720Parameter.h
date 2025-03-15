@@ -14,6 +14,12 @@ class CAENV1720ChannelParameter{
 
 public:
 
+    //CAENV1720ChannelParameter();
+
+    //~CAENV1720ChannelParameter();
+
+    //CAENV1720ChannelParameter& operator= (const CAENV1720ChannelParameter& rhs); 
+    
     unsigned int board_id;
 
     unsigned int channel_id;
@@ -91,8 +97,11 @@ public:
 
     vector< CAENV1720ChannelParameter > GetEnabledChannels(){ 
         vector< CAENV1720ChannelParameter > result;
-        for( unsigned int i=0; i<GetNChannelEnabled(); i++ )
-            result.push_back( channel_param[i] );
+        for( unsigned int i=0; i<NCHANNEL; i++ ){
+            if( ChannelNEnabled(i) ){
+                result.push_back( channel_param[i] );
+            }
+        }
         return result;
     }
         //!< Returns a vector containing list of enabled channels.
