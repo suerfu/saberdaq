@@ -646,48 +646,49 @@ void CAENV1720Parameter::ExportHDF5( H5FileManager* h5man){
      
     vector<CAENV1720ChannelParameter> channels = GetEnabledChannels();
 
+    vector<unsigned int> chan_enable;
+        // whether the channel is enabled or not
     vector<unsigned int> chan_indices;
+        // the index in the data set, skipping the unenabled channels
     vector<string> chan_label;
+        // label that represents what the channel is measuring
     vector<unsigned int> chan_DAC;
+        // DAC offset value
     vector<unsigned int> chan_local_trig_enable;
+        // whether local channel is enabled or not
     vector<unsigned int> chan_local_fp_trigout;
+        // whether front panel trigger output upon local trigger
     vector<unsigned int> chan_threshold;
+        // local threshold value
     vector<unsigned int> chan_tcross_threshold;
+        // time cross threshold
 
     unsigned int channel_order = 0;
+    bool chan_enable_tmp = false;
 
     for ( unsigned int j=0; j<8; j++){
 
-        if ( ChannelNEnabled( j )==false ){
-            cout << "Channel " << j << " is not enabled. Skipping...\n";
+        chan_enable_tmp = ChannelNEnabled(j);
+        chan_enable.push_back( chan_enable_tmp );
+
+        // if channel is enabled, increment the order/indice concurrently
+        if ( chan_enable_tmp ){
+            chan_indices.push_back( channel_order );
             channel_order++;
-	        // previously above line was missing, which would cause channel index not to increment when previous channel is not enabled.
-            continue;
         }
-        cout << "Channel " << j << " is enabled. Processing...\n";
-
-        CAENV1720ChannelParameter channel = channels[channel_order];
-        channel_order++;
-
-        //if( channel.channel_id!=j ){
-        //    cerr << "Warning: channel ID " << channel.channel_id << " is different from loop index " << j << endl;
-        //}
-
-        chan_indices.push_back( j );
-
-        if( channel.label!="")
-            chan_label.push_back( channel.label );
         else{
-            stringstream ss;
-            ss << "channel" << j;
-            chan_label.push_back( ss.str() );
+            chan_indices.push_back( -1 );
         }
 
+        CAENV1720ChannelParameter channel = channels[j];
+
+        chan_label.push_back( channel.label != "" ? channel.label : "n/a" );
         chan_DAC.push_back( channel.dac );
         chan_threshold.push_back( channel.threshold );
         chan_local_trig_enable.push_back( (unsigned int)( (local_trig_enable & (0x1<<j))!=0 ) );
         chan_local_fp_trigout.push_back( (unsigned int)( (local_fp_trigout & (0x1<<j))!=0 ) );
         chan_tcross_threshold.push_back( channel.tcrossthresh );
+        
 
     }
 
