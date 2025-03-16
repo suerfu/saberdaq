@@ -5,6 +5,8 @@ CAENV1720::CAENV1720( int32_t h, CAENV1720Parameter p): VMEBoard<CAENV1720Parame
 
     Reset();
 
+    cout << "ROC firmware: " << GetROCFirmware() << endl;
+
     /* configure local channel settings, threshold, dac, etc. */
     ConfigLocalChannel();
     ConfigChannel();
@@ -45,6 +47,10 @@ void CAENV1720::Initialize(){
     /* global channel configuration */
     ConfigChannel();
 
+    for( uint32_t i=0; i<8; i++){
+        cout << "AMC firmware : " << i << " = " << GetChannelAMCFirmware(i) << endl;
+    }
+
     /* enable channels */
     EnableChannels();
 
@@ -61,6 +67,18 @@ void CAENV1720::Initialize(){
 
     WriteRegister( 0x81a0, 0x1111);
         // Configures LVDS to reflect channel trigger status.
+}
+
+
+/*  Retrieve board's ROC firmware   */
+uint32_t CAENV1720::GetROCFirmware(){
+    return ReadRegister( ROC_FW );
+}
+
+
+/* Get the AMC firmware version for each channel */
+uint32_t CAENV1720::GetChannelAMCFirmware( uint32_t i ){
+    return ReadRegister( AMC_FW + i * 0x100 );
 }
 
 
@@ -113,7 +131,7 @@ bool CAENV1720::DACUpdated(int j){
     else
         for(int i=0;i<8;i++){
             uint32_t data = ReadRegister(CHN_STATUS + i*0x100);
-            if ( (data&0x04)==1) return false;
+            if ( (data&0x04)!=0 ) return false;
         }
     return true;
 }

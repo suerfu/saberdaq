@@ -32,6 +32,13 @@ enum V1720_REG {
     CHN_DAC = 0x1098,               // [15:0] DAC offset in +/-1 V range. Wait for CHN_STATUS bit-2 to update
     CHN_ADC = 0x109C,               // T.B.D.
 
+    /*  channel n AMC firmware version */
+    AMC_FW = 0x108C,                // AMC firmware is the firmware of ADC advanced mezzanine card
+    ROC_FW = 0x8124,                // ROC firmware is the firmware on the board that manages communication (main)
+                                    // [0:7]   Minor revision number
+                                    // [15:8]  Major revision
+                                    // [31:16] Firmware revision date (Y/M/DD)
+
     /*  channel configuration */
     CH_CONFIG = 0x8000,             // [19:16] zero suppression, 0000 = no zero suppression, [11] 0 = pack2.5 disabled
                                     // [6] 0 = Trigger output over threshold, 1 = under threshold

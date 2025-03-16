@@ -26,6 +26,12 @@ public:
     ~CAENV1720();
         //!< Destructor. Should free any memory allocated.
 
+    /* board's ROC firmware version */
+    uint32_t GetROCFirmware();
+
+    /* AMC's channel firmware version */
+    uint32_t GetChannelAMCFirmware( uint32_t i );
+
     /*  local channel settings to channel n */
     void SetThreshold(int i, uint32_t th);
         //!< Set threshold.
