@@ -319,8 +319,14 @@ void SaberDAQ::Configure(){
                 string type = cparser->GetString( dirname+"connect_via" );
                 citr = vme_connection.find( "/module/daq/"+type+"/" );
 
-                param_adc.push_back( param );
                 v1720.push_back( CAENV1720( (citr->second).handle, param ) );
+
+                param.roc_firmware = v1720.back().GetROCFirmware();
+                for( uint32_t i=0; i<CAENV1720Parameter::NCHANNEL; i++){
+                    param.channel_param[i].amc_firmware = v1720.back().GetChannelAMCFirmware(i);
+                }
+
+                param_adc.push_back( param );
             }
 
             if( param.runmode==FIRST_TRIG_CON )

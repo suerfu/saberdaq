@@ -10,6 +10,11 @@ CAENV1720::CAENV1720( int32_t h, CAENV1720Parameter p): VMEBoard<CAENV1720Parame
     /* configure local channel settings, threshold, dac, etc. */
     ConfigLocalChannel();
     ConfigChannel();
+    
+    /* get channel firmware version */
+    for( uint32_t i=0; i<8; i++){
+        cout << "AMC firmware : " << i << " = " << GetChannelAMCFirmware(i) << endl;
+    }
 
     /* pre and post trigger settings, buffer organization */
     ConfigBuffer();
