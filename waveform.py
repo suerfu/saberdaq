@@ -142,6 +142,12 @@ def main():
                         nargs = '*',
                         help = 'HDF5 files to read and display event(s).' )
     
+    parser.add_argument( '-o', '--output', 
+                        metavar = 'output',
+                        default = 'default',
+                        nargs = '?',
+                        help = 'Write the output to text file as ASCII.' )
+
     parser.add_argument( '-b', '--baseline', 
                         action = 'store_true',
                         help = 'Subtracts baseline. Baseline estimated as average of waveform in the pre-trigger window.' )
@@ -150,6 +156,10 @@ def main():
                         action = 'store_true',
                         help = 'Computes average pulse shape by averaging all waveforms in the file or specified via --event.' )
     
+    parser.add_argument( '-a', '--aux', 
+                        action = 'store_true',
+                        help = 'Draw auxilliary information on the plot such as trigger threshold' )
+     
     parser.add_argument( '--fft', 
                         action = 'store_true',
                         help = 'Computes FFT of the waveform. In this mode, --event is used to specify number of events to average.' )
@@ -237,11 +247,17 @@ def main():
                     #################
                     # making the plot
                     #################
+                        
+                    data_x = None
 
                     # if fft option is not specified, plot directly the spectrum
                     #
                     if args.fft == False :
-                        plt.plot( 0.004 * np.arange( 0, len(data), 1), data, label = file.split('/')[-1]+', channel {} event {}'.format( chan, event ) )
+                        
+                        data_x = 0.004 * np.arange( 0, len(data), 1) if args.fft == False else freq
+                        data_plt = data
+
+                        plt.plot( data_x, data_plt, label = file.split('/')[-1]+', channel {} event {}'.format( chan, event ) )
                     
                         # in the final plot, threshold will be marked, so now append the threshold onto the list (should be a unique set)
                         #
@@ -251,12 +267,22 @@ def main():
                     # if fft option is specified, first take the Fourier transform and then plot the amplitude of the transform.
                     #
                     else :
-                        data_fft = np.fft.rfft( data )
-                        freq = np.fft.rfftfreq( len(data), 0.004 )
-                        data_fft /= (data_fft[1] - data_fft[0]) * len( data )
+                        data_plt = np.fft.rfft( data )
+                        data_x = np.fft.rfftfreq( len(data), 0.004 )
+                        data_plt /= np.abs(data_plt[1] - data_plt[0]) * len( data )
                         
-                        plt.plot( freq, np.abs(data_fft), label = file.split('/')[-1]+', channel {} event {}'.format( chan, event ) )
+                        plt.plot( data_x, data_plt, label = file.split('/')[-1]+', channel {} event {}'.format( chan, event ) )
 
+                    # Write the processed information to file if specified
+                    #
+                    if args.output != "":
+                        
+                        rows = [ '{}, {}'.format(i,j) for i, j in zip( data_x, data_plt) ]
+                        text = '\n'.join(rows)
+                        text += '\n'
+
+                        with open( args.output + "_e{}.csv".format(event), 'w' ) as output_file:
+                            output_file.write( text )
 
                     minimum = min( np.min(data), minimum)
                     maximum = max( np.max(data), maximum)
@@ -264,7 +290,7 @@ def main():
             # if fft option is not enabled, plot the trigger points of each trace and the portion of pre-trigger window
             # this is only true for waveform mode, not fft.
             #
-            if args.fft == False :
+            if args.fft == False and args.aux == True :
             
                 for tc in threshold_plotted_list:
                     plt.plot( 0.004 * np.arange( 0, len(data), 1), tc * np.ones( len(data) ),  ':', label='threshold ({})'.format( file.split('/')[-1])  )
@@ -300,7 +326,7 @@ def main():
                     if event%100 == 0:
                         print('Processing event {}'.format(event), end='\r' )
 
-                    data = get_waveform( file, event )
+                    data = get_waveform( file, event, args.channel[0] )
                         # channel should be added here!
 
                     # in the sum mode always subtract baseline
@@ -321,14 +347,28 @@ def main():
 
                 print()
 
+            data_x = None
+
             if args.fft == False:
                 Sum /= np.max(Sum)
                     # normalize such that highest sample is 1.
-                plt.plot( 0.004 * np.arange( 0, len(Sum), 1), Sum, label = file.split('/')[-1] )
+                data_x = 0.004 * np.arange( 0, len(Sum), 1)
             else:
                 Sum /= nSum
                     # normalize by averaging
-                plt.plot( freq, Sum, label = file.split('/')[-1] )
+                data_x = np.fft.rfftfreq( len(data), 0.004 )
+            
+            plt.plot( data_x, Sum, label = file.split('/')[-1] )
+
+            if args.output != "":
+
+                rows = [ '{}, {}'.format(i,j) for i, j in zip(data_x, Sum) ]
+                text = '\n'.join(rows)
+                text += '\n'
+                
+                with open( args.output + "_sum{}.csv".format(nSum), 'w' ) as output_file:
+                    output_file.write( text )
+
     
     if args.fft == False:
         
@@ -343,8 +383,8 @@ def main():
         plt.ylabel('Power [a.u.]')
         plt.yscale('log')
     
-    plt.legend()
-    plt.show()
+    #plt.legend()
+    #plt.show()
 
 
 if __name__=="__main__":
