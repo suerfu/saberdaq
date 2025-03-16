@@ -113,7 +113,7 @@ bool CAENV1720::DACUpdated(int j){
     else
         for(int i=0;i<8;i++){
             uint32_t data = ReadRegister(CHN_STATUS + i*0x100);
-            if ( (data&0x04)==1) return false;
+            if ( (data&0x04)!=0 ) return false;
         }
     return true;
 }
