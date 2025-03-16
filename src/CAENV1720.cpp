@@ -609,6 +609,13 @@ void CAENV1720::ConfigFPIO(){
     SetBit(&data, param.lvds_io_output?0xf:0x0, 2, 5);
     SetBit(&data, 1, 8, 8);
         // enable new mode
+    
+    // enable extended trigger timetag by setting bit 22;21 to 10
+    // set to 01 for outputting trigger source in the event field
+    SetBit(&data, 2, 21, 22);
+
+    //cout << "Writing " << std::hex << FRONT_PANEL_IOCON << " with " << data << endl;
+
     WriteRegister(FRONT_PANEL_IOCON, data);
 }
 

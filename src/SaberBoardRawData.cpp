@@ -127,6 +127,11 @@ uint32_t SaberBoardRawData::GetTimeTag(){
 }
 
 
+uint32_t SaberBoardRawData::GetOptionField(){
+    return 0xffff & (buffer[1]>>8);
+}
+
+
 
 int SaberBoardRawData::GetNSignal( int dev){
 

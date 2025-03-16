@@ -322,6 +322,7 @@ void SaberHDF5Recorder::WriteToOutput( SaberDAQData* data){
         // write other attributes
         //
         uint32_t ttt = (*data)[i].GetTimeTag();
+        uint32_t option = (*data)[i].GetOptionField();
         uint32_t timestamp = data->GetTimeStamp();
         uint64_t index = evt_counter;
         uint64_t eventID = (*data)[i].GetEventID();
@@ -329,7 +330,10 @@ void SaberHDF5Recorder::WriteToOutput( SaberDAQData* data){
         h5man->AddAttribute( evtname.str(), "index", index);
         h5man->AddAttribute( evtname.str(), "counter", eventID);
         h5man->AddAttribute( evtname.str(), "trigger_time_tag", ttt);
+        h5man->AddAttribute( evtname.str(), "option", option);
         h5man->AddAttribute( evtname.str(), "timestamp", timestamp);
+    
+        //cout << option << endl;
     }
 
 }

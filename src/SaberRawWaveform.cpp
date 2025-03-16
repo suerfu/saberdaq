@@ -104,6 +104,10 @@ void SaberRawWaveform::SetTrigTimeTag( uint32_t s){
 }
 
 
+void SaberRawWaveform::SetOptionField( uint32_t a){
+    option = a;
+}
+
 int SaberRawWaveform::GetThreshold(){ 
     return threshold;
 }

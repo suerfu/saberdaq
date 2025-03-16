@@ -363,10 +363,17 @@ vector<SaberRawWaveform> SaberDecoder::GetEvent( uint64_t ID ){
 //            return vector<SaberRawWaveform>();
         }
 
-        // first word, event size
+        // **********************
+        // first word - event size
+        //
         event_size &= 0xfffffff;
 
+        // ***********
+        // second word - channel mask, programmable pattern, board geo ID
+        //
+        
         // check if channel mask is consistent
+        //
         uint32_t channel_mask = Read( *input );
         channel_mask &= 0x0ff;
         if( param_adc[bd].ch_enable_mask != channel_mask ){
@@ -376,6 +383,8 @@ vector<SaberRawWaveform> SaberDecoder::GetEvent( uint64_t ID ){
                  << ", data has mask 0x" << channel_mask <<endl;
             return vector<SaberRawWaveform>();
         }
+
+        uint32_t option = ( ( channel_mask >> 8 ) & 0xffff );
 
         // find out number of enabled channels
         int nchan_enabled = 0;
@@ -411,6 +420,7 @@ vector<SaberRawWaveform> SaberDecoder::GetEvent( uint64_t ID ){
 
             event[ch].SetTrigTimeTag( ttt );
             event[ch].SetEventID( evtID );
+            event[ch].SetOptionField( option );
 
             // read out data
             uint32_t data = 0;
@@ -574,6 +584,7 @@ void SaberDecoder::WriteHDF5( H5FileManager* h5man){
             h5man->AddAttribute( evtname.str(), "index", ID);
             h5man->AddAttribute( evtname.str(), "eventID", eventID);
             h5man->AddAttribute( evtname.str(), "trigger_time_tag", ttt);
+            h5man->AddAttribute( evtname.str(), "option", ttt);
 
             // If there are max_evt_per_set (1 million currently) events in the dataset, or for-loop reached its end
             // increment the dataset index and reset event counter to be 0.
