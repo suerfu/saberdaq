@@ -327,7 +327,7 @@ void SaberHDF5Recorder::WriteToOutput( SaberDAQData* data){
         uint64_t eventID = (*data)[i].GetEventID();
         
         h5man->AddAttribute( evtname.str(), "index", index);
-        h5man->AddAttribute( evtname.str(), "eventID", eventID);
+        h5man->AddAttribute( evtname.str(), "counter", eventID);
         h5man->AddAttribute( evtname.str(), "trigger_time_tag", ttt);
         h5man->AddAttribute( evtname.str(), "timestamp", timestamp);
     }

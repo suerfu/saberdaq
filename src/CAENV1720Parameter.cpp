@@ -634,43 +634,39 @@ void CAENV1720Parameter::ExportHDF5( H5FileManager* h5man){
 
     h5man->OpenGroup( "/"+board_name );
 
+    // Board-level configuration
+    h5man->AddAttribute( "/"+board_name, "board_address", GetBaseAddr() );
+    h5man->AddAttribute( "/"+board_name, "board_fw_version", string("2.0.0") );
     h5man->AddAttribute( "/"+board_name, "board_index", GetBoardIndex() );
-    h5man->AddAttribute( "/"+board_name, "fw_version", string("2.0.0") );
-    h5man->AddAttribute( "/"+board_name, "model", string("CAEN_V1720") );
-    h5man->AddAttribute( "/"+board_name, "sampling_rate", float(250e6) );
+    h5man->AddAttribute( "/"+board_name, "board_model", string("CAEN_V1720") );
+    h5man->AddAttribute( "/"+board_name, "board_run_mode", runmode==FIRST_TRIG_CON ? string("FIRST_TRIGGER") : string("REGISTER") );
+    h5man->AddAttribute( "/"+board_name, "board_sampling_rate", float(250e6) );
+    h5man->AddAttribute( "/"+board_name, "board_buffer_code", buff_code );
     
-    h5man->AddAttribute( "/"+board_name, "vme_address", GetBaseAddr() );
+    // Channel-level configuration
+    h5man->AddAttribute( "/"+board_name, "channel_enable_mask",  ch_enable_mask );
+    h5man->AddAttribute( "/"+board_name, "channel_nb_enabled", GetNChannelEnabled() );
 
-    h5man->AddAttribute( "/"+board_name, "channel_mask",  ch_enable_mask );
-    h5man->AddAttribute( "/"+board_name, "nb_channels", GetNChannelEnabled() );
+    // Event-level information
     h5man->AddAttribute( "/"+board_name, "nb_samples", GetEvtSizeInSamp()/GetNChannelEnabled() );
-    
     h5man->AddAttribute( "/"+board_name, "nb_pre_trigger_sample", pre_trig_sample );
     h5man->AddAttribute( "/"+board_name, "nb_post_trigger_sample", post_trig_sample );
     
-    if( runmode==FIRST_TRIG_CON ){
-        h5man->AddAttribute( "/"+board_name, "run_mode", string("first_trigger_controlled") );
-    }
-    else{
-        h5man->AddAttribute( "/"+board_name, "run_mode", string("register_controlled") );
-    }
-
-    h5man->AddAttribute( "/"+board_name, "buffer_code", buff_code );
-    
+    // Trigger-level information
     h5man->AddAttribute( "/"+board_name, "trigger_ext_enable", (unsigned int)(ext_trig_enable) );
     h5man->AddAttribute( "/"+board_name, "trigger_sw_enable", (unsigned int)(sw_trig_enable) );
 
-    h5man->AddAttribute( "/"+board_name, "trigger_ext_fp_out",  (unsigned int)(ext_fp_trigout) );
-    h5man->AddAttribute( "/"+board_name, "trigger_sw_fp_out",  (unsigned int)(sw_fp_trigout) );
+    h5man->AddAttribute( "/"+board_name, "trigger_fp_ext_out",  (unsigned int)(ext_fp_trigout) );
+    h5man->AddAttribute( "/"+board_name, "trigger_fp_sw_out",  (unsigned int)(sw_fp_trigout) );
     
     h5man->AddAttribute( "/"+board_name, "trigger_loc_enable", local_trig_enable );
-    h5man->AddAttribute( "/"+board_name, "trigger_loc_fp_out",  local_fp_trigout );
+    h5man->AddAttribute( "/"+board_name, "trigger_fp_loc_out",  local_fp_trigout );
     
     h5man->AddAttribute( "/"+board_name, "trigger_polarity", (unsigned int)(trig_over_threshold) );
     h5man->AddAttribute( "/"+board_name, "trigger_overlap", (unsigned int)(trig_overlap) );
     
     h5man->AddAttribute( "/"+board_name, "logic_TTL", (unsigned int)(logic_level_ttl) );
-    h5man->AddAttribute( "/"+board_name, "io_LVDS",  (unsigned int)(lvds_io_output) );
+    h5man->AddAttribute( "/"+board_name, "logic_LVDS",  (unsigned int)(lvds_io_output) );
     
     h5man->AddAttribute( "/"+board_name, "trigger_coin_level", coin_level );
     h5man->AddAttribute( "/"+board_name, "trigger_coin_window", coin_window );
