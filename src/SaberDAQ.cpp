@@ -321,12 +321,19 @@ void SaberDAQ::Configure(){
 
                 v1720.push_back( CAENV1720( (citr->second).handle, param ) );
 
-                param.roc_firmware = v1720.back().GetROCFirmware();
-                for( uint32_t i=0; i<CAENV1720Parameter::NCHANNEL; i++){
-                    param.channel_param[i].amc_firmware = v1720.back().GetChannelAMCFirmware(i);
-                }
-
+                param.board_fw_roc = v1720.back().GetROCFirmware();
+                param.board_fw_amc = v1720.back().GetChannelAMCFirmware( 0 );
                 param_adc.push_back( param );
+                
+                //cout << param.board_fw_roc << "\t" << param.board_fw_amc << endl;
+                    // it's possible to have multiple channels having different AMC firmware
+                    // such case will not be considered at the moment
+                    // therefore, AMC firmware is at board level rather than channel level
+
+                //for( uint32_t i=0; i<CAENV1720Parameter::NCHANNEL; i++){
+                //    param.channel_param[i].amc_firmware = v1720.back().GetChannelAMCFirmware( i );
+                //    cout << v1720.back().GetChannelAMCFirmware(i) << endl;
+                //}
             }
 
             if( param.runmode==FIRST_TRIG_CON )

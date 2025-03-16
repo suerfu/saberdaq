@@ -23,6 +23,21 @@ CAENV1720ChannelParameter::CAENV1720ChannelParameter(){
 
 CAENV1720ChannelParameter::~CAENV1720ChannelParameter(){}
 
+
+CAENV1720ChannelParameter::CAENV1720ChannelParameter(const CAENV1720ChannelParameter& rhs){
+    board_id = rhs.board_id;
+    channel_id = rhs.channel_id;
+    threshold = rhs.threshold;
+    tcrossthresh = rhs.tcrossthresh;
+    dac = rhs.dac;
+    descriptor = rhs.descriptor;
+    label = rhs.label;
+    name = rhs.name;
+    pre_trig_sample = rhs.pre_trig_sample;
+    post_trig_sample = rhs.post_trig_sample;
+}
+
+
 CAENV1720ChannelParameter& CAENV1720ChannelParameter::operator= (const CAENV1720ChannelParameter& rhs){
     board_id = rhs.board_id;
     channel_id = rhs.channel_id;
@@ -47,6 +62,8 @@ CAENV1720Parameter::CAENV1720Parameter() : VMEBoardParameter(){
     board_number = -1;
     base_addr = 0x32110000;
 
+    board_fw_roc = 0;
+    board_fw_amc = 0;
 
     /* event organization */
     pre_trig_sample = 1024;
@@ -636,7 +653,8 @@ void CAENV1720Parameter::ExportHDF5( H5FileManager* h5man){
 
     // Board-level configuration
     h5man->AddAttribute( "/"+board_name, "board_address", GetBaseAddr() );
-    h5man->AddAttribute( "/"+board_name, "board_firmware", roc_firmware );
+    h5man->AddAttribute( "/"+board_name, "board_fw_roc", board_fw_roc );
+    h5man->AddAttribute( "/"+board_name, "board_fw_amc", board_fw_amc );
     h5man->AddAttribute( "/"+board_name, "board_index", GetBoardIndex() );
     h5man->AddAttribute( "/"+board_name, "board_model", string("CAEN_V1720") );
     h5man->AddAttribute( "/"+board_name, "board_run_mode", runmode==FIRST_TRIG_CON ? string("FIRST_TRIGGER") : string("REGISTER") );
@@ -674,7 +692,7 @@ void CAENV1720Parameter::ExportHDF5( H5FileManager* h5man){
      
     vector<CAENV1720ChannelParameter> channels = GetEnabledChannels();
 
-    vector<unsigned int> chan_amc_fw;
+    //vector<unsigned int> chan_amc_fw;
         // each channel's AMC firmware
     vector<unsigned int> chan_indices;
         // the index in the data set, skipping the unenabled channels
@@ -712,7 +730,6 @@ void CAENV1720Parameter::ExportHDF5( H5FileManager* h5man){
             chan_label.push_back( ss.str() );
         }
 
-        chan_amc_fw.push_back( channel.amc_firmware );
         chan_DAC.push_back( channel.dac );
         chan_threshold.push_back( channel.threshold );
         chan_local_trig_enable.push_back( uint32_t( (local_trig_enable & (0x1<<j))!=0 ));
@@ -723,7 +740,6 @@ void CAENV1720Parameter::ExportHDF5( H5FileManager* h5man){
     h5man->AddAttribute( "/"+board_name, "channel_index", chan_indices );
     h5man->AddAttribute( "/"+board_name, "channel_label", chan_label );
     h5man->AddAttribute( "/"+board_name, "channel_DAC", chan_DAC );
-    h5man->AddAttribute( "/"+board_name, "channel_firmware", chan_amc_fw );
     h5man->AddAttribute( "/"+board_name, "channel_threshold", chan_threshold );
     h5man->AddAttribute( "/"+board_name, "channel_tx_threshold", chan_tcross_threshold );
     h5man->AddAttribute( "/"+board_name, "channel_trigger_loc_enable", chan_local_trig_enable );

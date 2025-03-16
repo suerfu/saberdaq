@@ -20,8 +20,6 @@ public:
 
     //CAENV1720ChannelParameter& operator= (const CAENV1720ChannelParameter& rhs); 
 
-    uint32_t amc_firmware;
-
     unsigned int board_id;
 
     unsigned int channel_id;
@@ -181,7 +179,9 @@ public:
 
 
     /* board firmware */
-    uint32_t roc_firmware;
+    uint32_t board_fw_roc;
+
+    uint32_t board_fw_amc;
 
 
     /* front panel IO control */
