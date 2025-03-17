@@ -14,8 +14,8 @@
 #include "TLine.h"
 #include "TBox.h"
 
-#include "PulseFinderRMS.h"
-#include "FlatBaselineFinder.h"
+//#include "PulseFinderRMS.h"
+//#include "FlatBaselineFinder.h"
 
 using std::vector;
 
@@ -70,7 +70,7 @@ private:
     TApplication* root_app;
 
     TCanvas* canvas;
-
+/*
     void AnalyzeWaveform( SaberDAQData* data);
         // simple online analysis and monitoring
 
@@ -89,15 +89,14 @@ private:
 
     PulseFinderRMS spe_finder;
         // PulseFinder for single photoelectron
-
+    
     SaberRawWaveform wfm;
         // hold raw waveform information from each channel
-
     FlatBaselineFinder baseline_finder;
 
     SaberRawWaveform bsln;
         // temporarily hold baseline info for subtraction.
-
+*/
 };
 
 

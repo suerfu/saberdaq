@@ -168,6 +168,9 @@ void SaberHDF5Recorder::Run(){
             stringstream ss;
             int delta = count - last_count;
             ss << "In the past 30 sec : " << delta << " events\n";
+            Print( ss.str(), INFO);
+
+            ss.str("");
             ss << "Trigger rate : " << delta/30. << " Hz\n";
             Print( ss.str(), INFO);
             last_count = count;
@@ -273,6 +276,47 @@ void SaberHDF5Recorder::ConfigureOutput( SaberDAQData* data ){
 
     CAENV1495Parameter trigparam = data->GetTriggerParameter();
     trigparam.ExportHDF5( h5man );
+
+    
+    // **********************************************
+    //          Custom Setup Information
+    // **********************************************
+
+    Print( "Custom setup information.\n", INFO );
+    
+    map< string, map< string, vector<string> > >::iterator itr;
+    for( itr=rawconfig->begin(); itr!=rawconfig->end(); ++itr){
+        
+        if ( itr->first.find("module") != std::string::npos ){
+            continue;
+        }
+
+        h5man->OpenGroup( itr->first );
+        //cout << "Creating group " << itr->first << endl;
+
+
+        map<string, vector<string> >::iterator itr2;
+        for( itr2=(itr->second).begin(); itr2!=(itr->second).end(); ++itr2){
+            //cout << "  |- " << itr2->first << "    ";
+            vector<string>::iterator itr3;
+            for( itr3=itr2->second.begin(); itr3!= itr2->second.end(); ++itr3){
+                //cout << *itr3 << ", ";
+                //cout << "Adding " << *itr3 << " to " << itr2->first << " under directory " << itr->first << endl;
+                
+                string dir = itr->first;
+                if ( !dir.empty() && dir.back() == '/') {
+                    dir.pop_back();
+                        // the trailing '/' needs to be removed in order for AddAttribute to work properly.
+                }
+                h5man->AddAttribute( dir, itr2->first, *itr3 );
+            }
+        }
+    }
+
+//    h5man->AddAttribute( "/", "version", string("2.0.0") );
+//    h5man->AddAttribute( "/", "comment", rawconfig->GetString("/cmdl/comment") );
+//    h5man->AddAttribute<string>( "/", "config", rawconfig->GetConfigFileTxt() );
+//    h5man->AddAttribute( "/", "timestamp", data->GetTimeStamp() );
 
 }
 

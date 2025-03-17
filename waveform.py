@@ -44,13 +44,20 @@ def display_attributes( filename, eventList, print_config = False ):
     
     print()
     
+    # iterate over file's global attributes
+    #
     for key in file.attrs.keys():
-        if key=='config':
-            
+
+        # for configuration file, it is long, so only print upon request
+        #
+        if key=='config':            
+
             if print_config:
                 print( '/'+key, ' : ', file.attrs[key])
             else:
+                print( 'configuration file skipped. Use -v option to display configuration file' )
                 continue
+
         else:
             print( '/'+key, ' : \t\t', file.attrs[key],) 
 
@@ -58,19 +65,38 @@ def display_attributes( filename, eventList, print_config = False ):
     
     for group in file.keys():
         
+ 
+        print( '\tGroup', group, 'attributes:' )
+
         for key in file[group].attrs.keys():
             print( '\t/'+group+'/'+key, ':\t\t', file[group].attrs[key] )
     
+        print()
+        print( '\tGroup', group, 'members:' )
+
+        # for long event lists, only print selected
         if 'nb_events' in file[group].attrs.keys() and file[group].attrs['nb_events'] > 0 :
             
             print()
 
             for evtID in eventList:
 
-                eventName = group+'/event_{}'.format(evtID)
+                if file[group].attrs['nb_events'] > evtID:
+                    eventName = group+'/event_{}'.format(evtID)
 
-                for key_event in file[ eventName ].attrs.keys():
-                    print( '\t\t/'+eventName+'/'+key_event, ':', file[ eventName ].attrs[key_event] )
+                    for key_event in file[ eventName ].attrs.keys():
+                        print( '\t\t/'+eventName+'/'+key_event, ':', file[ eventName ].attrs[key_event] )
+                else:
+                    print( evtID, 'exceeded maximum number of events (', file[group].attrs['nb_events'], ')' )
+        
+        # this group does not contain events, print everything
+        else:
+
+            for key in file[group].keys():
+                print( '\t/'+group+'/'+key, ':\t\t', file[group][key] )
+
+                for key2 in file[group][key].attrs.keys():
+                    print( '\t\t'+group+'/'+key+'/'+key2, ':', file[group][key].attrs[key2] )
         
         print()
 
