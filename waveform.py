@@ -38,7 +38,7 @@ colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
 # function to displays file attributes iteratively
 ##################################################
 
-def display_attributes( filename, print_config = False ):
+def display_attributes( filename, eventList, print_config = False ):
     
     file = h5.File( filename, 'r' )
     
@@ -64,8 +64,13 @@ def display_attributes( filename, print_config = False ):
         if 'nb_events' in file[group].attrs.keys() and file[group].attrs['nb_events'] > 0 :
             
             print()
-            for key_event in file[group+'/event_0'].attrs.keys():
-                print( '\t\t/'+group+'/event_0/'+key_event, ':', file[group+'/event_0'].attrs[key_event] )
+
+            for evtID in eventList:
+
+                eventName = group+'/event_{}'.format(evtID)
+
+                for key_event in file[ eventName ].attrs.keys():
+                    print( '\t\t/'+eventName+'/'+key_event, ':', file[ eventName ].attrs[key_event] )
         
         print()
 
@@ -189,7 +194,7 @@ def main():
         # for-loop for processing the files
         # iterate through each file
         for file in args.info:
-            display_attributes( file, args.verbose )
+            display_attributes( file, args.event, args.verbose )
         
         exit(0)
     
