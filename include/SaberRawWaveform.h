@@ -67,6 +67,9 @@ public:
     void SetTrigTimeTag( uint32_t s );
         //!< Set trigger time tag.
 
+    void SetOptionField( uint32_t a);
+    uint32_t GetOptionField(){ return option; };
+
     int GetThreshold();
     int GetThreshold() const;
     void SetThreshold( int s );
@@ -124,6 +127,8 @@ private:
     int txthreshold;
 
     int dac;
+
+    int option;
 
     int descriptor;
 

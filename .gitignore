@@ -33,3 +33,10 @@ build/
 *.exe
 *.out
 *.app
+
+# Data files
+*.hdf5
+*.root
+
+# CMake temporary files
+build

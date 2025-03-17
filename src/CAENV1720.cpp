@@ -5,9 +5,16 @@ CAENV1720::CAENV1720( int32_t h, CAENV1720Parameter p): VMEBoard<CAENV1720Parame
 
     Reset();
 
+    //cout << "ROC firmware: " << GetROCFirmware() << endl;
+
     /* configure local channel settings, threshold, dac, etc. */
     ConfigLocalChannel();
     ConfigChannel();
+    
+    /* get channel firmware version */
+    //for( uint32_t i=0; i<8; i++){
+    //    cout << "AMC firmware : " << i << " = " << GetChannelAMCFirmware(i) << endl;
+    //}
 
     /* pre and post trigger settings, buffer organization */
     ConfigBuffer();
@@ -45,6 +52,10 @@ void CAENV1720::Initialize(){
     /* global channel configuration */
     ConfigChannel();
 
+    //for( uint32_t i=0; i<8; i++){
+    //    cout << "AMC firmware : " << i << " = " << GetChannelAMCFirmware(i) << endl;
+    //}
+
     /* enable channels */
     EnableChannels();
 
@@ -61,6 +72,18 @@ void CAENV1720::Initialize(){
 
     WriteRegister( 0x81a0, 0x1111);
         // Configures LVDS to reflect channel trigger status.
+}
+
+
+/*  Retrieve board's ROC firmware   */
+uint32_t CAENV1720::GetROCFirmware(){
+    return ReadRegister( ROC_FW );
+}
+
+
+/* Get the AMC firmware version for each channel */
+uint32_t CAENV1720::GetChannelAMCFirmware( uint32_t i ){
+    return ReadRegister( AMC_FW + i * 0x100 );
 }
 
 
@@ -113,7 +136,7 @@ bool CAENV1720::DACUpdated(int j){
     else
         for(int i=0;i<8;i++){
             uint32_t data = ReadRegister(CHN_STATUS + i*0x100);
-            if ( (data&0x04)==1) return false;
+            if ( (data&0x04)!=0 ) return false;
         }
     return true;
 }
@@ -586,6 +609,13 @@ void CAENV1720::ConfigFPIO(){
     SetBit(&data, param.lvds_io_output?0xf:0x0, 2, 5);
     SetBit(&data, 1, 8, 8);
         // enable new mode
+    
+    // enable extended trigger timetag by setting bit 22;21 to 10
+    // set to 01 for outputting trigger source in the event field
+    SetBit(&data, 2, 21, 22);
+
+    //cout << "Writing " << std::hex << FRONT_PANEL_IOCON << " with " << data << endl;
+
     WriteRegister(FRONT_PANEL_IOCON, data);
 }
 

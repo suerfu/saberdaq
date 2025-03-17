@@ -168,6 +168,9 @@ void SaberHDF5Recorder::Run(){
             stringstream ss;
             int delta = count - last_count;
             ss << "In the past 30 sec : " << delta << " events\n";
+            Print( ss.str(), INFO);
+
+            ss.str("");
             ss << "Trigger rate : " << delta/30. << " Hz\n";
             Print( ss.str(), INFO);
             last_count = count;
@@ -212,7 +215,7 @@ string SaberHDF5Recorder::GetFileName(){
 
 void SaberHDF5Recorder::CloseOutput( SaberDAQData* data ){
 
-    Print( "Closing output HDF5 file...", INFO );
+    Print( "Closing output HDF5 file...\n", INFO );
     
     h5man->AddAttribute( "/", "timestamp_end", data->GetTimeStamp() );
    
@@ -222,7 +225,7 @@ void SaberHDF5Recorder::CloseOutput( SaberDAQData* data ){
         h5man->AddAttribute( ss.str(), "nb_events", evt_counter );
     
         stringstream ss2;
-        ss2 << evt_counter << "events recorded.\n";
+        ss2 << evt_counter << " events recorded.\n";
         Print( ss2.str(), INFO );
     }
 
@@ -244,12 +247,9 @@ void SaberHDF5Recorder::ConfigureOutput( SaberDAQData* data ){
     //          Global header 
     // ******************************
     
-    h5man->AddAttribute( "/", "version", string("1.0.0") );
+    h5man->AddAttribute( "/", "version", string("2.0.0") );
     h5man->AddAttribute( "/", "comment", rawconfig->GetString("/cmdl/comment") );
-
-    std::ostringstream ostr;
-    rawconfig->Print( ostr );
-    h5man->AddAttribute( "/", "config", ostr.str() );
+    h5man->AddAttribute<string>( "/", "config", rawconfig->GetConfigFileTxt() );
 
     h5man->AddAttribute( "/", "timestamp", data->GetTimeStamp() );
     
@@ -262,7 +262,7 @@ void SaberHDF5Recorder::ConfigureOutput( SaberDAQData* data ){
     
     nb_adc_board = adcparam.size() ;
 
-    h5man->AddAttribute( "/", "nb_adc_board", adcparam.size() );
+    h5man->AddAttribute( "/", "nb_adc_board", (uint32_t) adcparam.size() );
 
     for( unsigned int i=0; i<adcparam.size(); i++){
         adcparam[i].SetBoardIndex( i );
@@ -276,6 +276,40 @@ void SaberHDF5Recorder::ConfigureOutput( SaberDAQData* data ){
 
     CAENV1495Parameter trigparam = data->GetTriggerParameter();
     trigparam.ExportHDF5( h5man );
+
+    
+    // **********************************************
+    //          Custom Setup Information
+    // **********************************************
+
+    Print( "Custom setup information.\n", INFO );
+    
+    map< string, map< string, vector<string> > >::iterator itr;
+    for( itr=rawconfig->begin(); itr!=rawconfig->end(); ++itr){
+        
+        if ( itr->first.find("module") != std::string::npos ){
+            continue;
+        }
+
+        h5man->OpenGroup( itr->first );
+
+        string dir = itr->first;
+        if ( !dir.empty() && dir.back() == '/') {
+            dir.pop_back();
+                // the trailing '/' needs to be removed in order for AddAttribute to work properly.
+        }
+
+        map<string, vector<string> >::iterator itr2;
+        for( itr2=(itr->second).begin(); itr2!=(itr->second).end(); ++itr2){
+            h5man->AddAttribute( dir, itr2->first, itr2->second );
+                // this will add arguments as array of strings
+        }
+    }
+
+//    h5man->AddAttribute( "/", "version", string("2.0.0") );
+//    h5man->AddAttribute( "/", "comment", rawconfig->GetString("/cmdl/comment") );
+//    h5man->AddAttribute<string>( "/", "config", rawconfig->GetConfigFileTxt() );
+//    h5man->AddAttribute( "/", "timestamp", data->GetTimeStamp() );
 
 }
 
@@ -325,12 +359,18 @@ void SaberHDF5Recorder::WriteToOutput( SaberDAQData* data){
         // write other attributes
         //
         uint32_t ttt = (*data)[i].GetTimeTag();
+        uint32_t option = (*data)[i].GetOptionField();
+        uint32_t timestamp = data->GetTimeStamp();
         uint64_t index = evt_counter;
         uint64_t eventID = (*data)[i].GetEventID();
         
         h5man->AddAttribute( evtname.str(), "index", index);
-        h5man->AddAttribute( evtname.str(), "eventID", eventID);
+        h5man->AddAttribute( evtname.str(), "counter", eventID);
         h5man->AddAttribute( evtname.str(), "trigger_time_tag", ttt);
+        h5man->AddAttribute( evtname.str(), "option", option);
+        h5man->AddAttribute( evtname.str(), "timestamp", timestamp);
+    
+        //cout << option << endl;
     }
 
 }

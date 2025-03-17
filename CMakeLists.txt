@@ -1,89 +1,83 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.12)
 project(saberdaq)
 
-set(LIBNAME "libsaberdaq.so")
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_FLAGS "-Wall -g -fPIC")
 
-find_package(polaris REQUIRED)
-if(polaris_FOUND)
-  target_include_directories(${PROJECT_NAME} PRIVATE ${polaris_INCLUDE_DIRS})
-  target_link_libraries(${PROJECT_NAME} PRIVATE ${polaris_LIBRARIES})
+# Find and configure ROOT
+find_package(ROOT REQUIRED)
+if(ROOT_FOUND)
+    include_directories(${ROOT_INCLUDE_DIRS})
 endif()
 
+# Find and configure Polaris
+find_path(POLARIS_INCLUDE_DIR polaris)
+#find_path(POLARIS_INCLUDE_DIR NAMES polaris PATHS /usr/local/include /usr/include)
+find_library(POLARIS_LIBRARY NAMES polaris)
+if(POLARIS_INCLUDE_DIR AND POLARIS_LIBRARY)
+    message(STATUS "Found Polaris: ${POLARIS_LIBRARY} at ${POLARIS_INCLUDE_DIR}")
+    include_directories(${POLARIS_INCLUDE_DIR}/polaris)
+else()
+    message(FATAL_ERROR "Polaris library not found")
+endif()
 
-set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_FLAGS "-Wall -fPIC")
+# Find and configure HDF5 (direct path)
+set(HDF5_INCLUDE_DIRS /usr/local/HDF_Group/HDF5/1.14.6/include)
+set(HDF5_LIBRARIES /usr/local/HDF_Group/HDF5/1.14.6/lib/libhdf5.so /usr/local/HDF_Group/HDF5/1.14.6/lib/libhdf5_cpp.so /usr/local/HDF_Group/HDF5/1.14.6/lib/libhdf5_hl.so)
+include_directories(${HDF5_INCLUDE_DIRS})
 
-# Include directories
-include_directories(
-    analysis/include
-    include
-    h5manager/include
-    /usr/include/polaris
-    /usr/include
-    /usr/local/HDF_Group/HDF5/1.14.6/include
-)
 
-# Collect source files
-file(GLOB CPP_FILES
+# Include local directories
+include_directories(h5manager/include include /usr/local/include/polaris)
+# bug : above last entry SHOULDN'T be required, but somehow oilaris_include_dir points to /usr/local/bin instead of /usr/local/include
+# I am also leaving out analysis directories
+
+
+# Source files
+file(GLOB_RECURSE SOURCES
     "src/*.cpp"
-    "analysis/src/*.cpp"
+#    "analysis/src/*.cpp"
     "h5manager/src/*.cpp"
 )
 
-# Create library
-add_library(${PROJECT_NAME} SHARED ${CPP_FILES})
-set_target_properties(${PROJECT_NAME} PROPERTIES
-    OUTPUT_NAME "saberdaq"
-)
+# Create shared library
+add_library(saberdaq SHARED ${SOURCES})
 
 # Linker flags
-target_link_libraries(${PROJECT_NAME}
-    /usr/lib/libCAENVME.so
-    polaris
-    hdf5 hdf5_hl hdf5_cpp
-    pthread dl
+target_link_libraries(saberdaq
+    ${POLARIS_LIBRARY}
+    CAENVME
+    ${HDF5_LIBRARIES}
+    ${ROOT_LIBRARIES}
 )
 
-# Build executables
-set(EXE_FILES saber-update-format saber-convert-hdf5)
-if(DEFINED ENV{ROOTSYS})
-    list(APPEND EXE_FILES saber-event-viewer saber-spec-generator saber-avg-waveform)
-    include_directories($ENV{ROOTSYS}/include)
-    link_libraries($ENV{ROOTSYS}/lib)
-endif()
+# Executables (commented out)
+# set(EXE_FILES
+#     "saber-update-format"
+#     "saber-convert-hdf5"
+# )
 
-foreach(EXE ${EXE_FILES})
-    add_executable(${EXE} exe/${EXE}.cpp ${CPP_FILES})
-    target_link_libraries(${EXE} ${PROJECT_NAME})
-endforeach()
+# if(ROOT_FOUND)
+#     list(APPEND EXE_FILES
+#         "saber-event-viewer"
+#         "saber-spec-generator"
+#         "saber-avg-waveform"
+#     )
+# endif()
 
-# Installation prefix
-set(INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}" CACHE PATH "Installation directory prefix")
+# foreach(exe ${EXE_FILES})
+#     add_executable(${exe} exe/${exe}.cpp ${SOURCES})
+#     target_link_libraries(${exe} saberdaq)
+# endforeach()
 
-# Install library
-install(TARGETS ${PROJECT_NAME} ${EXE_FILES}
-    RUNTIME DESTINATION ${INSTALL_PREFIX}/bin
-    LIBRARY DESTINATION ${INSTALL_PREFIX}/lib
-    ARCHIVE DESTINATION ${INSTALL_PREFIX}/lib
-)
-install(DIRECTORY analysis/include DESTINATION ${INSTALL_PREFIX}/include/saberdaq)
-install(DIRECTORY include DESTINATION ${INSTALL_PREFIX}/include/saberdaq)
-
-# Uninstall target
-add_custom_target(uninstall
-    COMMAND xargs rm < install_manifest.txt
-    COMMAND rm -rf ${INSTALL_PREFIX}/include/saberdaq
-    VERBATIM
-)
+# Installation rules
+install(TARGETS saberdaq DESTINATION /usr/lib)
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/ DESTINATION /usr/include/saberdaq)
+# install(TARGETS ${EXE_FILES} DESTINATION /usr/bin)
 
 # Clean target
 add_custom_target(clean-all
-    COMMAND ${CMAKE_MAKE_PROGRAM} clean
-    COMMAND rm -rf ${CMAKE_BINARY_DIR}/CMakeFiles
-    COMMAND rm -rf ${CMAKE_BINARY_DIR}/Makefile
-    COMMAND rm -rf ${CMAKE_BINARY_DIR}/cmake_install.cmake
-    COMMAND rm -rf bin/*
-    COMMAND rm -rf lib/${LIBNAME}
-    VERBATIM
+    COMMAND ${CMAKE_COMMAND} -E remove_directory "${CMAKE_BINARY_DIR}"
+    COMMENT "Cleaning everything..."
 )
 

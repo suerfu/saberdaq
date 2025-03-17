@@ -40,8 +40,8 @@ SaberGraphics::SaberGraphics( plrsController* c ) : plrsStateMachine( c ){
 
     root_app = 0;
 
-    analysis_enable = false;
-    hist_initialized = false;
+    //analysis_enable = false;
+    //hist_initialized = false;
 
     next_addr = -1;
 }
@@ -303,7 +303,7 @@ void SaberGraphics::CommandHandler(){
 }
 
 
-
+/*
 
 void SaberGraphics::AnalyzeWaveform( SaberDAQData* data ){
 
@@ -393,4 +393,4 @@ void SaberGraphics::AnalyzeWaveform( SaberDAQData* data ){
                 
 }
 
-
+*/

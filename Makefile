@@ -27,8 +27,8 @@ OBJ_FILES = $(patsubst %.cpp, %.o, $(CPP_FILES))
 CFLAGS = -Wall -std=c++0x -fPIC -Ianalysis/include -Iinclude -Ih5manager/include
 
 # polaris flags and linker
-CFLAGS += -I/usr/include/polaris
-LDFLAGS = -L/usr/lib -lpolaris
+CFLAGS += -I/usr/local/include/polaris
+LDFLAGS = -L/usr/local/lib -lpolaris
 
 
 # CAEN libraries
@@ -55,7 +55,7 @@ endif
 
 all : lib bin
 
-bin : bin/saber-convert-hdf5 bin/saber-event-viewer bin/saber-update-format #bin/saber-spec-generator bin/saber-avg-waveform
+bin : #bin/saber-convert-hdf5 bin/saber-event-viewer bin/saber-update-format #bin/saber-spec-generator bin/saber-avg-waveform
 
 bin/saber-convert-hdf5 : exe/saber-convert-hdf5.cpp $(OBJ_FILES)
 	@echo "compiling $@"

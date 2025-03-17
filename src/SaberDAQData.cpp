@@ -14,7 +14,7 @@ SaberDAQData::SaberDAQData( std::vector<CAENV1720Parameter> a, CAENV1495Paramete
     //
     std::vector<CAENV1720Parameter>::iterator itr;
     
-    for(  itr = a.begin(); itr!=a.end(); ++itr){
+    for( itr = a.begin(); itr!=a.end(); ++itr){
 
         adc_parameters.push_back( *itr );
             // copy and store ADC parameter object

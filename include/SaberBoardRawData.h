@@ -56,6 +56,8 @@ public:
 
     unsigned int GetEventID();
 
+    uint32_t GetOptionField();
+    
     uint32_t GetTimeTag();
 
     int GetNSignal( int dev);

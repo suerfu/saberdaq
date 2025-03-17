@@ -6,6 +6,54 @@
 
 using namespace std;
 
+/*
+CAENV1720ChannelParameter::CAENV1720ChannelParameter(){
+    board_id = 0;
+    channel_id = 8;
+    threshold = 0;
+    tcrossthresh = 0;
+    dac = 0;
+    descriptor = 0;
+    label = "";
+    name = "";
+    pre_trig_sample = 0;
+    post_trig_sample = 0;
+}
+
+
+CAENV1720ChannelParameter::~CAENV1720ChannelParameter(){}
+
+
+CAENV1720ChannelParameter::CAENV1720ChannelParameter(const CAENV1720ChannelParameter& rhs){
+    board_id = rhs.board_id;
+    channel_id = rhs.channel_id;
+    threshold = rhs.threshold;
+    tcrossthresh = rhs.tcrossthresh;
+    dac = rhs.dac;
+    descriptor = rhs.descriptor;
+    label = rhs.label;
+    name = rhs.name;
+    pre_trig_sample = rhs.pre_trig_sample;
+    post_trig_sample = rhs.post_trig_sample;
+}
+
+
+CAENV1720ChannelParameter& CAENV1720ChannelParameter::operator= (const CAENV1720ChannelParameter& rhs){
+    board_id = rhs.board_id;
+    channel_id = rhs.channel_id;
+    threshold = rhs.threshold;
+    tcrossthresh = rhs.tcrossthresh;
+    dac = rhs.dac;
+    descriptor = rhs.descriptor;
+    label = rhs.label;
+    name = rhs.name;
+    pre_trig_sample = rhs.pre_trig_sample;
+    post_trig_sample = rhs.post_trig_sample;
+
+    return *this;
+}
+*/
+
 
 CAENV1720Parameter::CAENV1720Parameter() : VMEBoardParameter(){
 
@@ -14,6 +62,8 @@ CAENV1720Parameter::CAENV1720Parameter() : VMEBoardParameter(){
     board_number = -1;
     base_addr = 0x32110000;
 
+    board_fw_roc = 0;
+    board_fw_amc = 0;
 
     /* event organization */
     pre_trig_sample = 1024;
@@ -601,102 +651,97 @@ void CAENV1720Parameter::ExportHDF5( H5FileManager* h5man){
 
     h5man->OpenGroup( "/"+board_name );
 
-    h5man->AddAttribute( "/"+board_name, "index", GetBoardIndex() );
-    //h5man->AddAttribute( "/"+board_name, "enable", (unsigned int)(GetNChannelEnabled()>0) );
-    h5man->AddAttribute( "/"+board_name, "version", string("1.0.0") );
-    h5man->AddAttribute( "/"+board_name, "model", string("caen_v1720") );
-    h5man->AddAttribute( "/"+board_name, "sample_rate", float(250e6) );
+    // Board-level configuration
+    h5man->AddAttribute( "/"+board_name, "board_address", GetBaseAddr() );
+    h5man->AddAttribute( "/"+board_name, "board_fw_roc", board_fw_roc );
+    h5man->AddAttribute( "/"+board_name, "board_fw_amc", board_fw_amc );
+    h5man->AddAttribute( "/"+board_name, "board_index", GetBoardIndex() );
+    h5man->AddAttribute( "/"+board_name, "board_model", string("CAEN_V1720") );
+    h5man->AddAttribute( "/"+board_name, "board_run_mode", runmode==FIRST_TRIG_CON ? string("FIRST_TRIGGER") : string("REGISTER") );
+    h5man->AddAttribute( "/"+board_name, "board_sampling_rate", float(250e6) );
+    h5man->AddAttribute( "/"+board_name, "board_buffer_code", buff_code );
     
-    h5man->AddAttribute( "/"+board_name, "vme_address", GetBaseAddr() );
+    // Channel-level configuration
+    h5man->AddAttribute( "/"+board_name, "channel_enable_mask",  ch_enable_mask );
+    h5man->AddAttribute( "/"+board_name, "channel_nb_enabled", GetNChannelEnabled() );
 
-    h5man->AddAttribute( "/"+board_name, "channel_mask",  ch_enable_mask );
-    h5man->AddAttribute( "/"+board_name, "nb_channels", GetNChannelEnabled() );
+    // Event-level information
     h5man->AddAttribute( "/"+board_name, "nb_samples", GetEvtSizeInSamp()/GetNChannelEnabled() );
+    h5man->AddAttribute( "/"+board_name, "nb_pre_trigger_sample", pre_trig_sample );
+    h5man->AddAttribute( "/"+board_name, "nb_post_trigger_sample", post_trig_sample );
     
-    h5man->AddAttribute( "/"+board_name, "pre_trigger_sample", pre_trig_sample );
-    h5man->AddAttribute( "/"+board_name, "post_trigger_sample", post_trig_sample );
-    
-    if( runmode==FIRST_TRIG_CON ){
-        h5man->AddAttribute( "/"+board_name, "run_mode", string("first_trigger_controlled") );
-    }
-    else{
-        h5man->AddAttribute( "/"+board_name, "run_mode", string("register_controlled") );
-    }
+    // Trigger-level information
+    h5man->AddAttribute( "/"+board_name, "trigger_ext_enable", (unsigned int)(ext_trig_enable) );
+    h5man->AddAttribute( "/"+board_name, "trigger_sw_enable", (unsigned int)(sw_trig_enable) );
 
-    //h5man->AddAttribute( "/"+board_name, "buffer_code", buff_code );
+    h5man->AddAttribute( "/"+board_name, "trigger_fp_ext_out",  (unsigned int)(ext_fp_trigout) );
+    h5man->AddAttribute( "/"+board_name, "trigger_fp_sw_out",  (unsigned int)(sw_fp_trigout) );
     
-    h5man->AddAttribute( "/"+board_name, "ext_trigger_enable", (unsigned int)(ext_trig_enable) );
-    h5man->AddAttribute( "/"+board_name, "sw_trigger_enable", (unsigned int)(sw_trig_enable) );
-
-    h5man->AddAttribute( "/"+board_name, "frontpanel_ext_trigger_out",  (unsigned int)(ext_fp_trigout) );
-    h5man->AddAttribute( "/"+board_name, "frontpanel_sw_trigger_out",  (unsigned int)(sw_fp_trigout) );
-    
-    h5man->AddAttribute( "/"+board_name, "local_trigger_enable", local_trig_enable );
-    h5man->AddAttribute( "/"+board_name, "frontpanel_local_trigger_out",  local_fp_trigout );
+    h5man->AddAttribute( "/"+board_name, "trigger_loc_enable", local_trig_enable );
+    h5man->AddAttribute( "/"+board_name, "trigger_fp_loc_out",  local_fp_trigout );
     
     h5man->AddAttribute( "/"+board_name, "trigger_polarity", (unsigned int)(trig_over_threshold) );
     h5man->AddAttribute( "/"+board_name, "trigger_overlap", (unsigned int)(trig_overlap) );
     
-    h5man->AddAttribute( "/"+board_name, "logic_level_TTL", (unsigned int)(logic_level_ttl) );
-    h5man->AddAttribute( "/"+board_name, "LVDS_IO",  (unsigned int)(lvds_io_output) );
+    h5man->AddAttribute( "/"+board_name, "logic_TTL", (unsigned int)(logic_level_ttl) );
+    h5man->AddAttribute( "/"+board_name, "logic_LVDS",  (unsigned int)(lvds_io_output) );
     
-    h5man->AddAttribute( "/"+board_name, "coin_level", coin_level );
-    h5man->AddAttribute( "/"+board_name, "coin_window", coin_window );
+    h5man->AddAttribute( "/"+board_name, "trigger_coin_level", coin_level );
+    h5man->AddAttribute( "/"+board_name, "trigger_coin_window", coin_window );
     
      
     vector<CAENV1720ChannelParameter> channels = GetEnabledChannels();
 
+    //vector<unsigned int> chan_amc_fw;
+        // each channel's AMC firmware
     vector<unsigned int> chan_indices;
+        // the index in the data set, skipping the unenabled channels
     vector<string> chan_label;
+        // label that represents what the channel is measuring
     vector<unsigned int> chan_DAC;
+        // DAC offset value
     vector<unsigned int> chan_local_trig_enable;
+        // whether local channel is enabled or not
     vector<unsigned int> chan_local_fp_trigout;
+        // whether front panel trigger output upon local trigger
     vector<unsigned int> chan_threshold;
+        // local threshold value
     vector<unsigned int> chan_tcross_threshold;
+        // time cross threshold
 
     unsigned int channel_order = 0;
 
     for ( unsigned int j=0; j<8; j++){
 
         if ( ChannelNEnabled( j )==false ){
-            cout << "Channel " << j << " is not enabled. Skipping...\n";
-            channel_order++;
-	        // previously above line was missing, which would cause channel index not to increment when previous channel is not enabled.
             continue;
         }
-        cout << "Channel " << j << " is enabled. Processing...\n";
 
         CAENV1720ChannelParameter channel = channels[channel_order];
         channel_order++;
 
-        //if( channel.channel_id!=j ){
-        //    cerr << "Warning: channel ID " << channel.channel_id << " is different from loop index " << j << endl;
-        //}
-
         chan_indices.push_back( j );
 
-        if( channel.label!="")
+        if( channel.label!="" )
             chan_label.push_back( channel.label );
         else{
             stringstream ss;
-            ss << "channel" << j;
+            ss << "channel_" << j;
             chan_label.push_back( ss.str() );
         }
 
         chan_DAC.push_back( channel.dac );
         chan_threshold.push_back( channel.threshold );
-        chan_local_trig_enable.push_back( (unsigned int)( (local_trig_enable & (0x1<<j))!=0 ) );
-        chan_local_fp_trigout.push_back( (unsigned int)( (local_fp_trigout & (0x1<<j))!=0 ) );
-        chan_tcross_threshold.push_back( channel.tcrossthresh );
-
+        chan_local_trig_enable.push_back( uint32_t( (local_trig_enable & (0x1<<j))!=0 ));
+        chan_local_fp_trigout.push_back(  uint32_t( (local_fp_trigout & (0x1<<j))!=0 ));
+        chan_tcross_threshold.push_back(  uint32_t( channel.tcrossthresh) );
     }
 
-    h5man->AddAttribute( "/"+board_name, "channel_indices", chan_indices );
+    h5man->AddAttribute( "/"+board_name, "channel_index", chan_indices );
     h5man->AddAttribute( "/"+board_name, "channel_label", chan_label );
     h5man->AddAttribute( "/"+board_name, "channel_DAC", chan_DAC );
     h5man->AddAttribute( "/"+board_name, "channel_threshold", chan_threshold );
-    h5man->AddAttribute( "/"+board_name, "channel_time_cross_threshold", chan_tcross_threshold );
-    h5man->AddAttribute( "/"+board_name, "channel_local_trigger_enable", chan_local_trig_enable );
-    h5man->AddAttribute( "/"+board_name, "channel_local_frontpanel_trigger_out",  chan_local_fp_trigout );
- }
-
+    h5man->AddAttribute( "/"+board_name, "channel_tx_threshold", chan_tcross_threshold );
+    h5man->AddAttribute( "/"+board_name, "channel_trigger_loc_enable", chan_local_trig_enable );
+    h5man->AddAttribute( "/"+board_name, "channel_trigger_loc_fp_out",  chan_local_fp_trigout );
+}

@@ -225,27 +225,29 @@ void CAENV1495Parameter::ExportHDF5( H5FileManager* h5man){
     string name = "/logic_trigger";
     h5man->OpenGroup( name );
 
-    //h5man->AddAttribute( name, "enable", (unsigned int)(enable) );
-        // board is by default all enabled if it is added into the HDF5 file
-    h5man->AddAttribute( name, "version", string("1.0.0") );
-    h5man->AddAttribute( name, "vme_address", base_addr );
-    h5man->AddAttribute( name, "mode", GetModeString(output_mode) );
+    h5man->AddAttribute( name, "enable", (unsigned int)(enable) );
 
-    h5man->AddAttribute( name, "crystal_gate_length", gate_len_xystal );
-    h5man->AddAttribute( name, "veto_gate_length", gate_len_veto );
+    if( enable ){
+            // board is by default all enabled if it is added into the HDF5 file
+        h5man->AddAttribute( name, "version", string("1.0.0") );
+        h5man->AddAttribute( name, "vme_address", base_addr );
+        h5man->AddAttribute( name, "mode", GetModeString(output_mode) );
 
-    h5man->AddAttribute( name, "dead_time", dead_time );
-    h5man->AddAttribute( name, "veto_time", veto_time );
+        h5man->AddAttribute( name, "crystal_gate_length", gate_len_xystal );
+        h5man->AddAttribute( name, "veto_gate_length", gate_len_veto );
 
-    h5man->AddAttribute( name, "crystal_retrigger", (unsigned int)(retrig_xystal) );
-    h5man->AddAttribute( name, "veto_retrigger", (unsigned int)(retrig_veto) );
+        h5man->AddAttribute( name, "dead_time", dead_time );
+        h5man->AddAttribute( name, "veto_time", veto_time );
 
-    h5man->AddAttribute( name, "veto_mask", veto_mask );
-    h5man->AddAttribute( name, "veto_majority_level", maj_lev );
+        h5man->AddAttribute( name, "crystal_retrigger", (unsigned int)(retrig_xystal) );
+        h5man->AddAttribute( name, "veto_retrigger", (unsigned int)(retrig_veto) );
 
-    h5man->AddAttribute( name, "trigger_delay", sig_delay );
-    h5man->AddAttribute( name, "trigger_duration", trig_time );
+        h5man->AddAttribute( name, "veto_mask", veto_mask );
+        h5man->AddAttribute( name, "veto_majority_level", maj_lev );
 
+        h5man->AddAttribute( name, "trigger_delay", sig_delay );
+        h5man->AddAttribute( name, "trigger_duration", trig_time );
+    }
 }
 
 
