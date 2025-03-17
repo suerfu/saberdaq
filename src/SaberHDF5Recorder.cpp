@@ -292,24 +292,17 @@ void SaberHDF5Recorder::ConfigureOutput( SaberDAQData* data ){
         }
 
         h5man->OpenGroup( itr->first );
-        //cout << "Creating group " << itr->first << endl;
 
+        string dir = itr->first;
+        if ( !dir.empty() && dir.back() == '/') {
+            dir.pop_back();
+                // the trailing '/' needs to be removed in order for AddAttribute to work properly.
+        }
 
         map<string, vector<string> >::iterator itr2;
         for( itr2=(itr->second).begin(); itr2!=(itr->second).end(); ++itr2){
-            //cout << "  |- " << itr2->first << "    ";
-            vector<string>::iterator itr3;
-            for( itr3=itr2->second.begin(); itr3!= itr2->second.end(); ++itr3){
-                //cout << *itr3 << ", ";
-                //cout << "Adding " << *itr3 << " to " << itr2->first << " under directory " << itr->first << endl;
-                
-                string dir = itr->first;
-                if ( !dir.empty() && dir.back() == '/') {
-                    dir.pop_back();
-                        // the trailing '/' needs to be removed in order for AddAttribute to work properly.
-                }
-                h5man->AddAttribute( dir, itr2->first, *itr3 );
-            }
+            h5man->AddAttribute( dir, itr2->first, itr2->second );
+                // this will add arguments as array of strings
         }
     }
 

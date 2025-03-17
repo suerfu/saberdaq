@@ -243,7 +243,7 @@ def main():
         print('Processing', file)
         
         with h5.File( file, 'r') as f:
-            pre_trig_window = f['adc_0'].attrs['pre_trigger_sample']
+            pre_trig_window = f['adc_0'].attrs['nb_pre_trigger_sample']
             threshold = f['adc_0'].attrs['channel_threshold']
 
         minimum, maximum = 4096, 0
@@ -414,8 +414,8 @@ def main():
         plt.ylabel('Power [a.u.]')
         plt.yscale('log')
     
-    #plt.legend()
-    #plt.show()
+    plt.legend()
+    plt.show()
 
 
 if __name__=="__main__":
