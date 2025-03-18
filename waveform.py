@@ -243,7 +243,10 @@ def main():
         print('Processing', file)
         
         with h5.File( file, 'r') as f:
-            pre_trig_window = f['adc_0'].attrs['nb_pre_trigger_sample']
+            if 'nb_pre_trigger_sample' in f['adc_0'].attrs.keys():
+                pre_trig_window = f['adc_0'].attrs['nb_pre_trigger_sample']
+            else:
+                pre_trig_window = f['adc_0'].attrs['pre_trigger_sample']
             threshold = f['adc_0'].attrs['channel_threshold']
 
         minimum, maximum = 4096, 0
