@@ -191,3 +191,39 @@ bool H5FileManager::AddAttribute<const char*>( string app_name, string atr_name,
     return AddAttribute<const char*>( app_name, atr_name, atr, H5::StrType(H5::PredType::C_S1, H5T_VARIABLE), rank, dim );
 }
 
+
+// Operations on scalar
+
+template <>
+bool H5FileManager::AddAttribute<int>( string app_name, string atr_name, const int& atr ){
+    return AddAttribute<int>( app_name, atr_name, atr, H5::PredType::NATIVE_INT);
+}
+
+
+template <>
+bool H5FileManager::AddAttribute<float>( string app_name, string atr_name, const float& atr ){
+    return AddAttribute<float>( app_name, atr_name, atr, H5::PredType::NATIVE_FLOAT);
+}
+
+template <>
+bool H5FileManager::AddAttribute<uint32_t>( string app_name, string atr_name, const uint32_t& atr ){
+    return AddAttribute<uint32_t>( app_name, atr_name, atr, H5::PredType::NATIVE_UINT32);
+}
+
+template <>
+bool H5FileManager::AddAttribute<uint64_t>( string app_name, string atr_name, const uint64_t& atr ){
+    return AddAttribute<uint64_t>( app_name, atr_name, atr, H5::PredType::NATIVE_UINT64);
+}
+
+template <>
+bool H5FileManager::AddAttribute<string>( string app_name, string atr_name, const string& atr ){
+    return AddAttribute<const char*>( app_name, atr_name, atr.c_str(), H5::StrType(H5::PredType::C_S1, H5T_VARIABLE) );
+}
+
+/*
+template <>
+bool H5FileManager::AddAttribute<const char*>( string app_name, string atr_name, const char* &atr ){
+    string str( atr );
+    return AddAttribute<string>( app_name, atr_name, str );
+}
+*/

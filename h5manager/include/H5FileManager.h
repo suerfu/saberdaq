@@ -111,11 +111,7 @@ public:
     bool AddAttribute( string app_name, string atr_name, const D& atr, const H5::DataType& );
 
     template < class D>
-    bool AddAttribute( string app_name, string atr_name, const D& atr ){
-        vector<D> atr_vec;
-        atr_vec.push_back(atr);
-        return AddAttribute<D>( app_name, atr_name, atr_vec );
-    }
+    bool AddAttribute( string app_name, string atr_name, const D& atr );
 
 
     // Add vector attributes
@@ -233,6 +229,8 @@ bool H5FileManager::WriteData( PtrType* data, const H5::DataType& type, H5::Data
     return true;
 }
 
+
+
 // Add an array of attributes by vector.
 
 template< class D >
@@ -243,6 +241,9 @@ bool H5FileManager::AddAttribute( string app_name, string attr_name, const vecto
 
     void* foo = 0;
         // pointer to object to which attribute is added. Will point to either file or group.
+
+    // first check if the attribute is a file or a group
+    // if group, then also check if the group has been created or not
 
     bool file_attr = false;
     bool group_attr = false;
@@ -266,6 +267,8 @@ bool H5FileManager::AddAttribute( string app_name, string attr_name, const vecto
         return false;
     }
 
+    // get the dimensions accordingly
+    //
     hsize_t* dims = 0;
     if( rank==1 ){
         dims = new hsize_t( attr_vec.size() );
@@ -276,15 +279,11 @@ bool H5FileManager::AddAttribute( string app_name, string attr_name, const vecto
             dims[r] = dim[r];
     }
 
-    H5::DataSpace attr_ds;
-    if( attr_vec.size()==1 ){
-        attr_ds = H5::DataSpace( H5S_SCALAR);
-    }
-    else{
-        attr_ds = H5::DataSpace( rank, dims );
-        delete dims;
-    }
+    H5::DataSpace attr_ds = H5::DataSpace( rank, dims );
+    delete dims;
 
+    // create the actual attribute object by calling the create method from the appropriate base object
+    //
     H5::Attribute attr;
     if( file_attr ){
         try{
@@ -360,14 +359,89 @@ bool H5FileManager::AddAttribute( string app_name, const std::map<string, vector
 }
 
 
-// Add attributes individually.
+// Add attributes individually as a single scalar
+// Previously, a vector is formed and the vector-method is called, where the vector method would add singles as scalar
+// However, the above approach is not consistent as it is not possible to add a vector of single element/
+// A vector of single element is sometimes needed for channel parameters.
 
 template< class D >
 bool H5FileManager::AddAttribute( string app_name, string attr_name, const D& attr_data, const H5::DataType& datatype ){
-    vector<D> attr_vec;
-    attr_vec.push_back( attr_data);
-    return AddAttribute( app_name, attr_name, attr_vec, datatype);
-}
+    
+    if( !file_ptr )
+        return false;
 
+    void* foo = 0;
+        // pointer to object to which attribute is added. Will point to either file or group.
+
+    bool file_attr = false;
+    bool group_attr = false;
+
+    if( app_name=="" || app_name=="/"){
+        file_attr = true;
+        foo = file_ptr;
+    }
+    else if( GroupExist( app_name) ){
+        group_attr = true;
+        foo = list_group[app_name];
+    }
+    else if( DataSetExist( app_name) ){
+        foo =  new H5::DataSet( this->OpenDataSet( app_name ) );
+    }
+    else{
+        return false;
+    }
+
+    H5::DataSpace attr_ds = H5::DataSpace( H5S_SCALAR);
+
+    H5::Attribute attr;
+    if( file_attr ){
+        try{
+            H5::Exception::dontPrint();
+            attr = file_ptr->createAttribute( attr_name.c_str(), datatype, attr_ds);
+        }
+        catch( H5::AttributeIException error ){
+            // Print( error.getDetailMsg(), ERR);
+            return false;
+        }
+    }
+    else if( group_attr){
+        try{
+            H5::Exception::dontPrint();
+            attr = reinterpret_cast<H5::Group*>(foo)->createAttribute( attr_name.c_str(), datatype, attr_ds);
+        }
+        catch( H5::AttributeIException error ){
+            // Print( error.getDetailMsg(), ERR);
+            return false;
+        }
+    }
+    else{
+        try{
+            H5::Exception::dontPrint();
+            attr = reinterpret_cast<H5::DataSet*>(foo)->createAttribute( attr_name.c_str(), datatype, attr_ds);
+        }
+        catch( H5::AttributeIException error){
+            // Print( error.getDetailMsg(), ERR);
+            return false;
+        }
+    }
+
+    try{
+        attr.write( datatype, &attr_data );
+        attr.close();
+
+        // If attribute belongs to a DataSet, then close it since it is opened in this function.
+        if( !file_attr && !group_attr ){
+            reinterpret_cast<H5::DataSet*>(foo)->close();
+            delete reinterpret_cast<H5::DataSet*>(foo);
+            foo = 0;
+        }
+    }
+    catch( H5::AttributeIException error){
+        error.printErrorStack();
+        return false;
+    }
+
+    return true;
+}
 
 #endif
