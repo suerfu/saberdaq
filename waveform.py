@@ -175,9 +175,13 @@ def main():
     
     parser.add_argument( '-o', '--output', 
                         metavar = 'output',
-                        default = 'default',
+                        default = 'auto',
                         nargs = '?',
                         help = 'Write the output to text file as ASCII.' )
+    
+    parser.add_argument( '--no-output', 
+                        action = 'store_true',
+                        help = 'Disable output to ASCII text file.' )
 
     parser.add_argument( '-b', '--baseline', 
                         action = 'store_true',
@@ -311,11 +315,14 @@ def main():
                     #
                     if args.output != "":
                         
+                        # get the output name; if auto - append at the end of filename
+                        output_name = file.split('/')[-1].removesuffix(".hdf5") if args.output == "auto" else args.output
+                        
                         rows = [ '{}, {}'.format(i,j) for i, j in zip( data_x, data_plt) ]
                         text = '\n'.join(rows)
                         text += '\n'
 
-                        with open( args.output + "_e{}.csv".format(event), 'w' ) as output_file:
+                        with open( output_name + "_e{}.csv".format(event), 'w' ) as output_file:
                             output_file.write( text )
 
                     minimum = min( np.min(data), minimum)
@@ -396,11 +403,13 @@ def main():
 
             if args.output != "":
 
+                output_name = file.split('/')[-1].removesuffix(".hdf5") if args.output == "auto" else args.output
+
                 rows = [ '{}, {}'.format(i,j) for i, j in zip(data_x, Sum) ]
                 text = '\n'.join(rows)
                 text += '\n'
                 
-                with open( args.output + "_sum{}.csv".format(nSum), 'w' ) as output_file:
+                with open( output_name + "_sum{}.csv".format(nSum), 'w' ) as output_file:
                     output_file.write( text )
 
     

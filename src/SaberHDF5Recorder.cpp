@@ -352,10 +352,6 @@ void SaberHDF5Recorder::WriteToOutput( SaberDAQData* data){
         //
         h5man->WriteData( (*data)[i].GetBufferAddr()+4, evtname.str(), H5::PredType::NATIVE_UINT16, 2, dim);
         
-        evt_counter++;
-            // Everytime an event is written, increment the counter to keep track of number of events.
-            // This will be written into the HDF5 file later.
-
         // write other attributes
         //
         uint32_t ttt = (*data)[i].GetTimeTag();
@@ -369,8 +365,12 @@ void SaberHDF5Recorder::WriteToOutput( SaberDAQData* data){
         h5man->AddAttribute( evtname.str(), "trigger_time_tag", ttt);
         h5man->AddAttribute( evtname.str(), "option", option);
         h5man->AddAttribute( evtname.str(), "timestamp", timestamp);
-    
-        //cout << option << endl;
+
+
+        evt_counter++;
+            // Everytime an event is written, increment the counter to keep track of number of events.
+            // This will be written into the HDF5 file later.
+            // In previous versions, this was done before the writing, causing an event offset of 1.
     }
 
 }
