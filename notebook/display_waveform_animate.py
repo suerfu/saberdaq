@@ -20,6 +20,7 @@ def update(frame):
     raw_wfm = event[0]
     waveform1.set_ydata( raw_wfm )
     ax[1].set_ylim( [3980,4050] )
+
     # baseline finding
     flag, proc_wfm, mask0, mask1, coeff = ps.BaselineFinder( raw_wfm, pre_trigger_sample )
 
@@ -53,6 +54,7 @@ def update(frame):
             ax[0].set_title( f"Event {eventID} - Noise (overshoot)" )
         else:
             pflag, beg, end = ps.PulseFinder( proc_wfm, threshold=dev, std=dev, beg=0, end=pre_trigger_sample + window)
+            end = max(end,beg+window)
             
             if pflag != ps.PulseFlag.NOT_FOUND:
                 end += 1
@@ -78,8 +80,9 @@ def update(frame):
                 #ax_inset.set_ylim([min1-10,max1+10])
             else:
                 sbox.set_data( [], [] )
+            
+            ax[0].set_title( f"Event {eventID} - P:{pflag} - S:{sflag}" )
                 
-            ax[0].set_title( f"Event {eventID} - {pflag} - {sflag}" )
     else:
         ax[0].set_title( f"Event {eventID} - {flag}" )
     
@@ -87,7 +90,7 @@ def update(frame):
     waveform2.set_ydata( proc_wfm )
     baseline1.set_ydata( baseline )
     sigma1.set_ydata( baseline - dev)
-    sigma2.set_ydata( 0*xdata + dev)
+    sigma2.set_ydata( baseline + dev)
     baseline_mask1.set_data( xdata[mask], raw_wfm[mask] )
     
     #waveform3 = waveform1[beg+window:]
@@ -120,15 +123,16 @@ def update(frame):
 
     
 parser = argparse.ArgumentParser(description="Process a file with a specified range.")
-#parser.add_argument("filename", help="Path to the input file", default='data/20250325_NaI_Kamioka/NaI_Background_Bottom_Run1_HV800_20250325_120615.hdf5')
+parser.add_argument("filename", help="Path to the input file")
 parser.add_argument("--range", type=int, nargs=2, metavar=('START', 'END'), default=[0,-1], help="Range values: start and end" )
+parser.add_argument("--random", action="store_true", help="Randomly display events in the specified range" )
 args = parser.parse_args()
 
-#print(f"Filename: {args.filename}")
-#print(f"Range: {args.start} to {args.end}")
+print(f"Filename: {args.filename}")
+print(f"Range: {args.range[0]} to {args.range[1]}")
 
-filename = 'data/20250325_NaI_Kamioka/NaI_Background_Bottom_Run1_HV800_20250325_120615.hdf5' #parser.filename
-reader = h5reader.DataReader( filename )
+#filename = 'data/20250325_NaI_Kamioka/NaI_Background_Bottom_Run1_HV800_20250325_120615.hdf5' #parser.filename
+reader = h5reader.DataReader( args.filename )
 reader.Open()
 
 adc_attr = reader.GetADCAttributes()
@@ -150,15 +154,16 @@ for a in ax.flat:
     a.set_ylabel( 'ADC Count', fontsize=14 )
 
 waveform2, = ax[0].plot( xdata, 0*xdata, lw=1, linestyle='-' )
-sigma2, = ax[0].plot( xdata, 0*xdata, lw=1, linestyle=':', color='g')
+baseline2, = ax[0].plot( xdata, 0*xdata, lw=1, linestyle='-', color='g' )
 
 waveform1, = ax[1].plot( xdata, 0*xdata, lw=1, linestyle='-' )
-baseline1, = ax[1].plot( xdata, 0*xdata, lw=1, linestyle=':', color='g' )
-sigma1, = ax[1].plot( xdata, 0*xdata, lw=1, linestyle='--', color='g')
+baseline1, = ax[1].plot( xdata, 0*xdata, lw=1, linestyle='-', color='r' )
+sigma1, = ax[1].plot( xdata, 0*xdata, lw=1, linestyle='--', color='r')
+sigma2, = ax[1].plot( xdata, 0*xdata, lw=1, linestyle='--', color='r')
 baseline_mask1, = ax[1].plot( xdata, 0*xdata, '.' )
 
-pbox, = ax[1].plot( np.zeros(5), np.zeros(5), lw=1, color='r')
-sbox, = ax[1].plot( np.zeros(5), np.zeros(5), lw=1, color='r')
+pbox, = ax[0].plot( np.zeros(5), np.zeros(5), lw=1, color='g')
+sbox, = ax[0].plot( np.zeros(5), np.zeros(5), lw=1, color='g')
 
 window = 750
 
@@ -176,9 +181,11 @@ window = 750
 begin = args.range[0]
 end = nb_events if args.range[1] < 0 else min(nb_events, args.range[1])
 
-#ani = FuncAnimation(fig, update, frames=range(begin, end), fargs=(text,), interval=intval, blit=True)
 intval = 2500
-ani = FuncAnimation(fig, update, frames=range(begin, end), interval=intval, blit=True)
+frame = range(begin,end) if args.random==False else np.random.randint( begin, end, nb_events)
+
+ani = FuncAnimation(fig, update, frames=frame, interval=intval, blit=True)
+#ani = FuncAnimation(fig, update, frames=range(begin, end), fargs=(text,), interval=intval, blit=True)
 
 
 plt.show()
