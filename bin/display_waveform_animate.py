@@ -53,7 +53,7 @@ def update(frame):
         if np.min(proc_wfm) < -10:
             ax[0].set_title( f"Event {eventID} - Noise (overshoot)" )
         else:
-            pflag, beg, end = ps.PulseFinder( proc_wfm, threshold=dev, std=dev, beg=0, end=pre_trigger_sample + window)
+            pflag, beg, end = ps.PulseFinder( proc_wfm, threshold=dev, std=dev, beg=0, end=2*pre_trigger_sample)
             end = max(end,beg+window)
             
             if pflag != ps.PulseFlag.NOT_FOUND:
@@ -62,36 +62,44 @@ def update(frame):
                 min0 = np.min(proc_wfm[beg:end])
                 max0 = np.max(proc_wfm[beg:end])
                 pbox.set_data( [beg,beg,end,end,beg], [min0, max0, max0, min0, min0] )
+                #print( "AWMT = {}".format(ps.GetAWMT(proc_wfm[beg:end]) ) )
             else:
                 pbox.set_data( [], [] )
     
             #print("Continuing to secondary pulse finding")
             
-            sflag, sbeg, send = ps.PulseFinder( proc_wfm, threshold=dev, std=dev, beg=end, end=-1 )
-            min_length = 50
+            if pflag != ps.PulseFlag.NO_TAIL and end<len(proc_wfm)-1:
+
+                sflag, sbeg, send = ps.PulseFinder( proc_wfm, threshold=dev, std=dev, beg=end, end=-1 )
+                min_length = 50
             
-            if (sflag != ps.PulseFlag.NOT_FOUND) and len(proc_wfm[sbeg:send])>min_length :
-                send += 1
-                #print( f"Secondary pulse found between {sbeg} and {send}: {sflag}" )
-                min1 = np.min(proc_wfm[sbeg:send])
-                max1 = np.max(proc_wfm[sbeg:send])
-                sbox.set_data([sbeg,sbeg,send,send,sbeg], [min1, max1, max1, min1, min1])
-                #ax_inset.set_xlim([beg-10,send+10])
-                #ax_inset.set_ylim([min1-10,max1+10])
+                if (sflag != ps.PulseFlag.NOT_FOUND) and len(proc_wfm[sbeg:send])>min_length :
+                    send += 1
+                    #print( f"Secondary pulse found between {sbeg} and {send}: {sflag}" )
+                    min1 = np.min(proc_wfm[sbeg:send])
+                    max1 = np.max(proc_wfm[sbeg:send])
+                    sbox.set_data([sbeg,sbeg,send,send,sbeg], [min1, max1, max1, min1, min1])
+                    #ax_inset.set_xlim([beg-10,send+10])
+                    #ax_inset.set_ylim([min1-10,max1+10])
+                else:
+                    sbox.set_data( [], [] )
+                
+                ax[0].set_title( f"Event {eventID} - P:{pflag} - S:{sflag}" )
+            
             else:
-                sbox.set_data( [], [] )
-            
-            ax[0].set_title( f"Event {eventID} - P:{pflag} - S:{sflag}" )
+                ax[0].set_title( f"Event {eventID} - P:{pflag}" )
                 
     else:
         ax[0].set_title( f"Event {eventID} - {flag}" )
     
     waveform1.set_ydata( raw_wfm )
-    waveform2.set_ydata( proc_wfm )
-    baseline1.set_ydata( baseline )
-    sigma1.set_ydata( baseline - dev)
-    sigma2.set_ydata( baseline + dev)
-    baseline_mask1.set_data( xdata[mask], raw_wfm[mask] )
+
+    if flag != ps.BaselineFlag.NOT_FOUND:
+        waveform2.set_ydata( proc_wfm )
+        baseline1.set_ydata( baseline )
+        sigma1.set_ydata( baseline - dev)
+        sigma2.set_ydata( baseline + dev)
+        baseline_mask1.set_data( xdata[mask], raw_wfm[mask] )
     
     #waveform3 = waveform1[beg+window:]
     #second_pulse_window = 20
