@@ -125,7 +125,7 @@ def main():
                         nargs = '*',
                         help = 'HDF5 files to read and display event(s).' )
     parser.add_argument( '--pyroot',
-                        nargs = 1,
+                        nargs = '*',
                         help = 'Generates a ROOT file from the input raw files.' )
     parser.add_argument( '--no-plot', 
                         action = 'store_true',
@@ -155,7 +155,7 @@ def main():
     # Check if pyroot is installed
     ##############################
 
-    if len( args.pyroot ) > 0 :
+    if False: #len( args.pyroot ) > 0 :
         
         try:
             import ROOT

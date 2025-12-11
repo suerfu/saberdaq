@@ -38,34 +38,65 @@ colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
 # function to displays file attributes iteratively
 ##################################################
 
-def display_attributes( filename, print_config = False ):
+def display_attributes( filename, eventList, print_config = False ):
     
     file = h5.File( filename, 'r' )
     
     print()
     
+    # iterate over file's global attributes
+    #
     for key in file.attrs.keys():
-        if key=='config':
-            
+
+        # for configuration file, it is long, so only print upon request
+        #
+        if key=='config':            
+
             if print_config:
                 print( '/'+key, ' : ', file.attrs[key])
             else:
+                print( 'configuration file skipped. Use -v option to display configuration file' )
                 continue
-        
-        print( '/'+key, ' : ', file.attrs[key])
+
+        else:
+            print( '/'+key, ' : \t\t', file.attrs[key],) 
 
     print()
     
     for group in file.keys():
         
+ 
+        print( '\tGroup', group, 'attributes:' )
+
         for key in file[group].attrs.keys():
-            print( '\t/'+group+'/'+key, ':', file[group].attrs[key])
+            print( '\t/'+group+'/'+key, ':\t\t', file[group].attrs[key] )
     
+        print()
+        print( '\tGroup', group, 'members:' )
+
+        # for long event lists, only print selected
         if 'nb_events' in file[group].attrs.keys() and file[group].attrs['nb_events'] > 0 :
             
             print()
-            for key_event in file[group+'/event_0'].attrs.keys():
-                print( '\t\t/'+group+'/event_0/'+key_event, ':', file[group+'/event_0'].attrs[key_event] )
+
+            for evtID in eventList:
+
+                if file[group].attrs['nb_events'] > evtID:
+                    eventName = group+'/event_{}'.format(evtID)
+
+                    for key_event in file[ eventName ].attrs.keys():
+                        print( '\t\t/'+eventName+'/'+key_event, ':', file[ eventName ].attrs[key_event] )
+                else:
+                    print( evtID, 'exceeded maximum number of events (', file[group].attrs['nb_events'], ')' )
+        
+        # this group does not contain events, print everything
+        else:
+
+            for key in file[group].keys():
+                print( '\t/'+group+'/'+key, ':\t\t', file[group][key] )
+
+                for key2 in file[group][key].attrs.keys():
+                    print( '\t\t'+group+'/'+key+'/'+key2, ':', file[group][key].attrs[key2] )
         
         print()
 
@@ -142,6 +173,16 @@ def main():
                         nargs = '*',
                         help = 'HDF5 files to read and display event(s).' )
     
+    parser.add_argument( '-o', '--output', 
+                        metavar = 'output',
+                        default = 'auto',
+                        nargs = '?',
+                        help = 'Write the output to text file as ASCII.' )
+    
+    parser.add_argument( '--no-output', 
+                        action = 'store_true',
+                        help = 'Disable output to ASCII text file.' )
+
     parser.add_argument( '-b', '--baseline', 
                         action = 'store_true',
                         help = 'Subtracts baseline. Baseline estimated as average of waveform in the pre-trigger window.' )
@@ -150,6 +191,10 @@ def main():
                         action = 'store_true',
                         help = 'Computes average pulse shape by averaging all waveforms in the file or specified via --event.' )
     
+    parser.add_argument( '-a', '--aux', 
+                        action = 'store_true',
+                        help = 'Draw auxilliary information on the plot such as trigger threshold' )
+     
     parser.add_argument( '--fft', 
                         action = 'store_true',
                         help = 'Computes FFT of the waveform. In this mode, --event is used to specify number of events to average.' )
@@ -179,7 +224,7 @@ def main():
         # for-loop for processing the files
         # iterate through each file
         for file in args.info:
-            display_attributes( file, args.verbose )
+            display_attributes( file, args.event, args.verbose )
         
         exit(0)
     
@@ -202,7 +247,10 @@ def main():
         print('Processing', file)
         
         with h5.File( file, 'r') as f:
-            pre_trig_window = f['adc_0'].attrs['pre_trigger_sample']
+            if 'nb_pre_trigger_sample' in f['adc_0'].attrs.keys():
+                pre_trig_window = f['adc_0'].attrs['nb_pre_trigger_sample']
+            else:
+                pre_trig_window = f['adc_0'].attrs['pre_trigger_sample']
             threshold = f['adc_0'].attrs['channel_threshold']
 
         minimum, maximum = 4096, 0
@@ -237,11 +285,17 @@ def main():
                     #################
                     # making the plot
                     #################
+                        
+                    data_x = None
 
                     # if fft option is not specified, plot directly the spectrum
                     #
                     if args.fft == False :
-                        plt.plot( 0.004 * np.arange( 0, len(data), 1), data, label = file.split('/')[-1]+', channel {} event {}'.format( chan, event ) )
+                        
+                        data_x = 0.004 * np.arange( 0, len(data), 1) if args.fft == False else freq
+                        data_plt = data
+
+                        plt.plot( data_x, data_plt, label = file.split('/')[-1]+', channel {} event {}'.format( chan, event ) )
                     
                         # in the final plot, threshold will be marked, so now append the threshold onto the list (should be a unique set)
                         #
@@ -251,12 +305,25 @@ def main():
                     # if fft option is specified, first take the Fourier transform and then plot the amplitude of the transform.
                     #
                     else :
-                        data_fft = np.fft.rfft( data )
-                        freq = np.fft.rfftfreq( len(data), 0.004 )
-                        data_fft /= (data_fft[1] - data_fft[0]) * len( data )
+                        data_plt = np.fft.rfft( data )
+                        data_x = np.fft.rfftfreq( len(data), 0.004 )
+                        data_plt /= np.abs(data_plt[1] - data_plt[0]) * len( data )
                         
-                        plt.plot( freq, np.abs(data_fft), label = file.split('/')[-1]+', channel {} event {}'.format( chan, event ) )
+                        plt.plot( data_x, data_plt, label = file.split('/')[-1]+', channel {} event {}'.format( chan, event ) )
 
+                    # Write the processed information to file if specified
+                    #
+                    if args.output != "":
+                        
+                        # get the output name; if auto - append at the end of filename
+                        output_name = file.split('/')[-1].removesuffix(".hdf5") if args.output == "auto" else args.output
+                        
+                        rows = [ '{}, {}'.format(i,j) for i, j in zip( data_x, data_plt) ]
+                        text = '\n'.join(rows)
+                        text += '\n'
+
+                        with open( output_name + "_e{}.csv".format(event), 'w' ) as output_file:
+                            output_file.write( text )
 
                     minimum = min( np.min(data), minimum)
                     maximum = max( np.max(data), maximum)
@@ -264,7 +331,7 @@ def main():
             # if fft option is not enabled, plot the trigger points of each trace and the portion of pre-trigger window
             # this is only true for waveform mode, not fft.
             #
-            if args.fft == False :
+            if args.fft == False and args.aux == True :
             
                 for tc in threshold_plotted_list:
                     plt.plot( 0.004 * np.arange( 0, len(data), 1), tc * np.ones( len(data) ),  ':', label='threshold ({})'.format( file.split('/')[-1])  )
@@ -300,7 +367,7 @@ def main():
                     if event%100 == 0:
                         print('Processing event {}'.format(event), end='\r' )
 
-                    data = get_waveform( file, event )
+                    data = get_waveform( file, event, args.channel[0] )
                         # channel should be added here!
 
                     # in the sum mode always subtract baseline
@@ -321,14 +388,30 @@ def main():
 
                 print()
 
+            data_x = None
+
             if args.fft == False:
                 Sum /= np.max(Sum)
                     # normalize such that highest sample is 1.
-                plt.plot( 0.004 * np.arange( 0, len(Sum), 1), Sum, label = file.split('/')[-1] )
+                data_x = 0.004 * np.arange( 0, len(Sum), 1)
             else:
                 Sum /= nSum
                     # normalize by averaging
-                plt.plot( freq, Sum, label = file.split('/')[-1] )
+                data_x = np.fft.rfftfreq( len(data), 0.004 )
+            
+            plt.plot( data_x, Sum, label = file.split('/')[-1] )
+
+            if args.output != "":
+
+                output_name = file.split('/')[-1].removesuffix(".hdf5") if args.output == "auto" else args.output
+
+                rows = [ '{}, {}'.format(i,j) for i, j in zip(data_x, Sum) ]
+                text = '\n'.join(rows)
+                text += '\n'
+                
+                with open( output_name + "_sum{}.csv".format(nSum), 'w' ) as output_file:
+                    output_file.write( text )
+
     
     if args.fft == False:
         
