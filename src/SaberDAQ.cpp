@@ -204,10 +204,14 @@ void SaberDAQ::Initialize(){
         Print( "Initializing " + (i->first) + " with " + (i->second).type + "\n", INFO );
 
         if( (i->second).type=="vme_usb" ){
-            error_code = CAENVME_Init(cvV1718, (i->second).link_number, (i->second).board_number, &handle);
+		Print( "USB connecction", INFO );
+		cout << cvUSB_A4818 << " " << ((i->second).link_number) << " " << (i->second).board_number << endl;
+            error_code = CAENVME_Init2( cvUSB_A4818, &((i->second).link_number), (i->second).board_number, &handle);
+	    // FIX ME: this is a temporary fix to deal with USB-A4818 case
         }
         else{
-            error_code = CAENVME_Init(cvV2718, (i->second).link_number, (i->second).board_number, &handle);
+		Print( "Optical link connecction", INFO );
+            error_code = CAENVME_Init( cvV2718, (i->second).link_number, (i->second).board_number, &handle);
         }
 
         if( error_code == cvSuccess ){

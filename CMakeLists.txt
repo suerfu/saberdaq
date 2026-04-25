@@ -22,8 +22,8 @@ else()
 endif()
 
 # Find and configure HDF5 (direct path)
-set(HDF5_INCLUDE_DIRS /usr/local/HDF_Group/HDF5/1.14.6/include)
-set(HDF5_LIBRARIES /usr/local/HDF_Group/HDF5/1.14.6/lib/libhdf5.so /usr/local/HDF_Group/HDF5/1.14.6/lib/libhdf5_cpp.so /usr/local/HDF_Group/HDF5/1.14.6/lib/libhdf5_hl.so)
+set(HDF5_INCLUDE_DIRS /usr/local/HDF_Group/HDF5/2.0.0/include /usr/include)
+set(HDF5_LIBRARIES /usr/local/HDF_Group/HDF5/2.0.0/lib/libhdf5.so /usr/local/HDF_Group/HDF5/2.0.0/lib/libhdf5_cpp.so /usr/local/HDF_Group/HDF5/2.0.0/lib/libhdf5_hl.so)
 include_directories(${HDF5_INCLUDE_DIRS})
 
 

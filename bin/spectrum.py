@@ -193,7 +193,7 @@ def main():
         with h5.File( filename, 'r' ) as file:
             
             nb_events = file['adc_0'].attrs['nb_events']
-            pre_trig_window = file['adc_0'].attrs['pre_trigger_sample']
+            pre_trig_window = file['adc_0'].attrs['nb_pre_trigger_sample']
 
             # get number of events, which is the smaller of that specified or that available
             #

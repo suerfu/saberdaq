@@ -65,8 +65,6 @@ void SaberGraphics::Configure(){
         refresh_rate = cparser->GetInt( "/module/graphics/refresh_rate", refresh_rate);
     }
 
-    Print( "SaberGraphics configured\n", DETAIL);
-
     canvas = new TCanvas();
 
     void* rdo = 0;
@@ -74,6 +72,7 @@ void SaberGraphics::Configure(){
         rdo = PullFromBuffer();
     }
 
+    Print( "SaberGraphics configured\n", DETAIL);
 
     /*
     analysis_enable =  cparser->GetBool("/module/graphics/analysis/enable", false);
